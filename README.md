@@ -62,10 +62,18 @@ az deployment group create \
 
 ## After deployment
 
-1. **Upload backend code** — Deploy the Function App code from `msp-o365-portal-api`
-2. **Deploy frontend** — Connect `msp-o365-portal` to the Static Web App via GitHub Actions
-3. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → Role: `SuperAdmin`
-4. **Run Setup Wizard** — Log in to the portal, complete the setup wizard with your App Registration credentials
+1. **Create App Registration** — In your Microsoft Partner tenant (Entra ID → App registrations → New registration)
+   - Name: `Orchex`
+   - Supported account types: `Accounts in any organizational directory (Multitenant)`
+   - Redirect URI: `https://login.microsoftonline.com/common/oauth2/nativeclient`
+   - Manifest tab → replace contents with `OrchexManifest.json` from this repo → Save
+   - API permissions → Grant admin consent
+   - Certificates & secrets → New client secret → save the value
+
+2. **Upload backend code** — Deploy the Function App code from `orchex-api`
+3. **Deploy frontend** — Connect `orchex` to the Static Web App via GitHub Actions
+4. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → Role: `SuperAdmin`
+5. **Run Setup Wizard** — Log in to the portal, complete the setup wizard with your App Registration credentials
 
 ## Resource naming
 
