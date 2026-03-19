@@ -20,28 +20,28 @@
     },
     "keyVaultName": {
       "type": "string",
-      "defaultValue": "[concat(parameters('prefix'), '-kv')]",
+      "defaultValue": "orchex-kv",
       "metadata": {
         "description": "Name of the Key Vault. Must be globally unique."
       }
     },
     "storageAccountName": {
       "type": "string",
-      "defaultValue": "[concat(parameters('prefix'), 'storage')]",
+      "defaultValue": "orchexstorage",
       "metadata": {
         "description": "Name of the Storage Account. Must be globally unique, lowercase, max 24 chars."
       }
     },
     "functionAppName": {
       "type": "string",
-      "defaultValue": "[concat(parameters('prefix'), '-api')]",
+      "defaultValue": "orchex-api",
       "metadata": {
         "description": "Name of the Function App. Must be globally unique."
       }
     },
     "staticWebAppName": {
       "type": "string",
-      "defaultValue": "[concat(parameters('prefix'), '-portal')]",
+      "defaultValue": "orchex-portal",
       "metadata": {
         "description": "Name of the Static Web App. Must be globally unique."
       }
