@@ -1,6 +1,9 @@
 # Orchex — Deployment
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fmain.json)
+[![Deploy to Azure (Dev)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fdev%2Fmain.json)
+
+> **Dev template** uses SWA Free tier (no cost) — for personal testing only. Production deployments should use the standard template above (SWA Standard, ~$9/mo).
 
 Orchex is a self-hosted MSP portal for managing Microsoft 365 tenants. Each MSP deploys their own independent instance to their own Azure subscription.
 

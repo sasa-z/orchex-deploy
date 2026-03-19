@@ -1,0 +1,242 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "prefix": {
+      "type": "string",
+      "defaultValue": "orchex",
+      "minLength": 3,
+      "maxLength": 10,
+      "metadata": {
+        "description": "A short name used to prefix all resources. Lowercase letters and numbers only. Max 10 characters."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for all resources."
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "orchex-kv",
+      "metadata": {
+        "description": "Name of the Key Vault. Must be globally unique."
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "orchexstorage",
+      "metadata": {
+        "description": "Name of the Storage Account. Must be globally unique, lowercase, max 24 chars."
+      }
+    },
+    "functionAppName": {
+      "type": "string",
+      "defaultValue": "orchex-api",
+      "metadata": {
+        "description": "Name of the Function App. Must be globally unique."
+      }
+    },
+    "staticWebAppName": {
+      "type": "string",
+      "defaultValue": "orchex-portal",
+      "metadata": {
+        "description": "Name of the Static Web App. Must be globally unique."
+      }
+    }
+  },
+  "variables": {
+    "appServicePlanName": "[concat(parameters('prefix'), '-plan')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false,
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[parameters('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "tenantId": "[subscription().tenantId]",
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 90,
+        "enabledForDeployment": false,
+        "enabledForDiskEncryption": false,
+        "enabledForTemplateDeployment": false,
+        "networkAcls": {
+          "defaultAction": "Allow",
+          "bypass": "AzureServices"
+        },
+        "accessPolicies": []
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "powerShellVersion": "7.4",
+          "use32BitWorkerProcess": false,
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "cors": {
+            "allowedOrigins": [
+              "[concat('https://', parameters('staticWebAppName'), '.azurestaticapps.net')]"
+            ],
+            "supportCredentials": false
+          },
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value, ';EndpointSuffix=core.windows.net')]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "powershell"
+            },
+            {
+              "name": "KeyVaultName",
+              "value": "[parameters('keyVaultName')]"
+            },
+            {
+              "name": "SetupComplete",
+              "value": "false"
+            },
+            {
+              "name": "TenantId",
+              "value": "[concat('@Microsoft.KeyVault(VaultName=', parameters('keyVaultName'), ';SecretName=TenantId)')]"
+            },
+            {
+              "name": "ApplicationId",
+              "value": "[concat('@Microsoft.KeyVault(VaultName=', parameters('keyVaultName'), ';SecretName=ApplicationId)')]"
+            },
+            {
+              "name": "ApplicationSecret",
+              "value": "[concat('@Microsoft.KeyVault(VaultName=', parameters('keyVaultName'), ';SecretName=ApplicationSecret)')]"
+            },
+            {
+              "name": "RefreshToken",
+              "value": "[concat('@Microsoft.KeyVault(VaultName=', parameters('keyVaultName'), ';SecretName=RefreshToken)')]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/accessPolicies",
+      "apiVersion": "2023-07-01",
+      "name": "[concat(parameters('keyVaultName'), '/add')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "properties": {
+        "accessPolicies": [
+          {
+            "tenantId": "[subscription().tenantId]",
+            "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2023-01-01', 'Full').identity.principalId]",
+            "permissions": {
+              "secrets": [
+                "get",
+                "list",
+                "set"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('staticWebAppName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Free",
+        "tier": "Free"
+      },
+      "properties": {
+        "buildProperties": {
+          "skipGithubActionWorkflowGeneration": true
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[parameters('functionAppName')]"
+    },
+    "functionAppHostname": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName'))).defaultHostName]"
+    },
+    "staticWebAppName": {
+      "type": "string",
+      "value": "[parameters('staticWebAppName')]"
+    },
+    "staticWebAppHostname": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/staticSites', parameters('staticWebAppName'))).defaultHostname]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[parameters('keyVaultName')]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[parameters('storageAccountName')]"
+    },
+    "functionAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2023-01-01', 'Full').identity.principalId]"
+    }
+  }
+}
