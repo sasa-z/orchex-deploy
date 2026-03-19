@@ -27,7 +27,7 @@
     },
     "storageAccountName": {
       "type": "string",
-      "defaultValue": "yourcompanystorage",
+      "defaultValue": "yourcompanyorchex",
       "metadata": {
         "description": "Name of the Storage Account. Must be globally unique, lowercase, max 24 chars. Recommended: use your company name, e.g. contosostorage"
       }
