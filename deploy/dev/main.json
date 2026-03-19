@@ -20,14 +20,14 @@
     },
     "keyVaultName": {
       "type": "string",
-      "defaultValue": "orchex-kv",
+      "defaultValue": "yourcompany-kv",
       "metadata": {
         "description": "Name of the Key Vault. Must be globally unique across all of Azure. Recommended: use your company name, e.g. contoso-kv"
       }
     },
     "storageAccountName": {
       "type": "string",
-      "defaultValue": "orchexstorage",
+      "defaultValue": "yourcompanystorage",
       "metadata": {
         "description": "Name of the Storage Account. Must be globally unique, lowercase, max 24 chars. Recommended: use your company name, e.g. contosostorage"
       }
