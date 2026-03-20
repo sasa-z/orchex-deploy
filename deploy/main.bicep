@@ -123,6 +123,10 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: 'false'
         }
         {
+          name: 'PublicClientApp'
+          value: 'true'
+        }
+        {
           name: 'TenantId'
           value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=TenantId)'
         }
