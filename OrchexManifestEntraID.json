@@ -1,7 +1,7 @@
 {
   "isFallbackPublicClient": true,
   "signInAudience": "AzureADMultipleOrgs",
-  "displayName": "Orchex",
+  "displayName": "Orchex-SAM",
   "web": {
     "redirectUris": [
       "https://login.microsoftonline.com/common/oauth2/nativeclient"
