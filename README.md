@@ -66,7 +66,7 @@ az deployment group create \
    - Name: `Orchex`
    - Supported account types: `Accounts in any organizational directory (Multitenant)`
    - Redirect URI: `https://login.microsoftonline.com/common/oauth2/nativeclient`
-   - Manifest tab → replace contents with `OrchexManifest.json` from this repo → Save
+   - Manifest tab → replace contents with `OrchexManifestEntraID.json` from this repo → Save
    - API permissions → Grant admin consent
    - Certificates & secrets → New client secret → save the value
 
