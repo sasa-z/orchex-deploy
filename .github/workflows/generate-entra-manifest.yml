@@ -1,0 +1,38 @@
+name: Generate Entra ID Manifest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'OrchexManifest.json'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Strip name fields and generate OrchexManifestEntraID.json
+        run: |
+          node -e "
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('OrchexManifest.json', 'utf8'));
+            for (const resource of manifest.requiredResourceAccess) {
+              for (const entry of resource.resourceAccess) {
+                delete entry.name;
+              }
+            }
+            fs.writeFileSync('OrchexManifestEntraID.json', JSON.stringify(manifest, null, 2) + '\n');
+            console.log('Generated OrchexManifestEntraID.json');
+          "
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add OrchexManifestEntraID.json
+          git diff --cached --quiet || git commit -m "chore: regenerate OrchexManifestEntraID.json"
+          git push
