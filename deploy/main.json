@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "13194279900779778601"
+      "templateHash": "866376085161202338"
     }
   },
   "parameters": {
@@ -178,7 +178,7 @@
             },
             {
               "name": "LicenceApiUrl",
-              "value": "https://orchex-licence-api.azurewebsites.net/api/ValidateLicence"
+              "value": "https://orchex-licence-api-had4ece2bybedghf.westus2-01.azurewebsites.net/api/ValidateLicence"
             }
           ]
         }
