@@ -152,7 +152,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'LicenceApiUrl'
-          value: 'https://orchex-licence-api.azurewebsites.net/api/ValidateLicence'
+          value: 'https://orchex-licence-api-had4ece2bybedghf.westus2-01.azurewebsites.net/api/ValidateLicence'
         }
       ]
     }
