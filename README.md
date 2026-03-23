@@ -6,14 +6,15 @@ Orchex is a self-hosted MSP portal for managing Microsoft 365 tenants. Each MSP 
 
 ## What gets deployed
 
-| Resource | Type | Notes |
-|----------|------|-------|
-| Function App | Consumption plan | PowerShell 7.4 backend |
-| Static Web App | Standard tier | Vue 3 frontend |
-| Key Vault | Standard | Stores credentials securely |
-| Storage Account | Standard LRS | Tables for data & logs |
+| Resource        | Type             | Notes                       |
+| --------------- | ---------------- | --------------------------- |
+| Function App    | Consumption plan | PowerShell 7.4 backend      |
+| Static Web App  | Standard tier    | Vue 3 frontend              |
+| Key Vault       | Standard         | Stores credentials securely |
+| Storage Account | Standard LRS     | Tables for data & logs      |
 
 The Function App is deployed with:
+
 - System Assigned Managed Identity enabled
 - Key Vault access policy configured automatically (Get, List, Set)
 - App Settings pre-configured with Key Vault References
@@ -30,13 +31,13 @@ The Function App is deployed with:
 
 Click the **Deploy to Azure** button above. You will be prompted to fill in:
 
-| Parameter | Description |
-|-----------|-------------|
-| `prefix` | Short name prefix for all resources (e.g. `orchex`) |
-| `keyVaultName` | Globally unique Key Vault name |
+| Parameter            | Description                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| `prefix`             | Short name prefix for all resources (e.g. `orchex`)            |
+| `keyVaultName`       | Globally unique Key Vault name                                 |
 | `storageAccountName` | Globally unique storage account name (lowercase, max 24 chars) |
-| `functionAppName` | Globally unique Function App name |
-| `staticWebAppName` | Globally unique Static Web App name |
+| `functionAppName`    | Globally unique Function App name                              |
+| `staticWebAppName`   | Globally unique Static Web App name                            |
 
 ### Option B — Azure CLI
 
@@ -74,10 +75,10 @@ az deployment group create \
 
 All resources are prefixed with the `prefix` parameter. Default names:
 
-| Resource | Default name |
-|----------|-------------|
-| Function App | `orchex-api` |
-| Static Web App | `orchex-portal` |
-| Key Vault | `orchex-kv` |
-| Storage Account | `orchexstorage` |
-| App Service Plan | `orchex-plan` |
+| Resource         | Default name    |
+| ---------------- | --------------- |
+| Function App     | `orchex-api`    |
+| Static Web App   | `orchex-portal` |
+| Key Vault        | `orchex-kv`     |
+| Storage Account  | `orchexstorage` |
+| App Service Plan | `orchex-plan`   |
