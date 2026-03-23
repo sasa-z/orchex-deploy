@@ -1,0 +1,28 @@
+name: Compile Bicep
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/main.bicep'
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile main.bicep to main.json
+        run: az bicep build --file deploy/main.bicep --outfile deploy/main.json
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deploy/main.json
+          git diff --cached --quiet || git commit -m "chore: recompile main.bicep"
+          git push

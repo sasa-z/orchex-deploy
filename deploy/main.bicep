@@ -146,6 +146,14 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'RefreshToken'
           value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RefreshToken)'
         }
+        {
+          name: 'LicenceKey'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=LicenceKey)'
+        }
+        {
+          name: 'LicenceApiUrl'
+          value: 'https://orchex-licence-api.azurewebsites.net/api/ValidateLicence'
+        }
       ]
     }
   }
