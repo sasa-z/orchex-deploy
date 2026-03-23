@@ -1,12 +1,6 @@
 # Orchex — Deployment
 
-**Production** (SWA Standard ~$9/mo)
-
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fmain.json)
-
-**Dev / Testing** (SWA Free, no cost)
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fdev%2Fmain.json)
 
 Orchex is a self-hosted MSP portal for managing Microsoft 365 tenants. Each MSP deploys their own independent instance to their own Azure subscription.
 
@@ -70,10 +64,11 @@ az deployment group create \
    - API permissions → Grant admin consent
    - Certificates & secrets → New client secret → save the value
 
-2. **Upload backend code** — Deploy the Function App code from `orchex-api`
-3. **Deploy frontend** — Connect `orchex` to the Static Web App via GitHub Actions
-4. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → Role: `SuperAdmin`
-5. **Run Setup Wizard** — Log in to the portal, complete the setup wizard with your App Registration credentials
+2. **Register client for deployment** — Add publish profile and SWA token as GitHub Secrets in `orchex-api` and `orchex` repos, add entry to `.github/clients.json` in each repo
+3. **Create Static Web App** — In Azure Portal, create SWA with Source: **Other** (not GitHub), then get deployment token via `az staticwebapp secrets list`
+4. **Link backend** — Azure Portal → SWA → APIs → Link backend → select Function App
+5. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → Role: `SuperAdmin`
+6. **Run Setup Wizard** — Log in to the portal, complete the setup wizard with your App Registration credentials
 
 ## Resource naming
 
