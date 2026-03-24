@@ -36,6 +36,36 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
+// Lifecycle policy: auto-delete orchex-results blobs after 1 day
+resource blobLifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPolicies@2023-01-01' = {
+  parent: storageAccount
+  name: 'default'
+  properties: {
+    policy: {
+      rules: [
+        {
+          name: 'delete-orchex-results'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            filters: {
+              blobTypes: [ 'blockBlob' ]
+              prefixMatch: [ 'orchex-results/' ]
+            }
+            actions: {
+              baseBlob: {
+                delete: {
+                  daysAfterModificationGreaterThan: 1
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
 // ============================================
 // KEY VAULT
 // ============================================
