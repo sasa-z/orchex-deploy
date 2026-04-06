@@ -547,6 +547,11 @@
           "name": "Policy.ReadWrite.Authorization"
         },
         {
+          "id": "a402ca1c-2696-4531-972d-6e5ee4aa11ea",
+          "type": "Role",
+          "name": "Policy.ReadWrite.PermissionGrant"
+        },
+        {
           "id": "2d9bd318-b883-40be-9df7-63ec4fcdc424",
           "type": "Role",
           "name": "Group-OnPremisesSyncBehavior.ReadWrite.All"
