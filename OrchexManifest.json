@@ -657,6 +657,11 @@
           "name": "Domain.Read.All"
         },
         {
+          "id": "0b5d694c-a244-4bde-86e6-eb5555be468a",
+          "type": "Scope",
+          "name": "Domain.ReadWrite.All"
+        },
+        {
           "id": "346c19ff-3fb2-4e81-87a0-bac9e33990c1",
           "type": "Scope",
           "name": "OrgSettings-Forms.ReadWrite.All"
@@ -680,6 +685,11 @@
           "id": "dbb9058a-0e50-45d7-ae91-66909b5d4664",
           "type": "Role",
           "name": "Domain.Read.All"
+        },
+        {
+          "id": "7e05723c-0bb0-42da-be95-ae9f08a6e53c",
+          "type": "Role",
+          "name": "Domain.ReadWrite.All"
         },
         {
           "id": "0e755559-83fb-4b44-91d0-4cc721b9323e",
