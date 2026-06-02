@@ -145,6 +145,13 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: 'powershell'
         }
         {
+          // Allows a single PowerShell worker to run multiple activity invocations
+          // concurrently via runspaces. Must align with host.json
+          // maxConcurrentActivityFunctions, otherwise the worker serializes activities.
+          name: 'PSWorkerInProcConcurrencyUpperBound'
+          value: '5'
+        }
+        {
           name: 'KeyVaultName'
           value: keyVaultName
         }
