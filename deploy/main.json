@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "5837008381812060129"
+      "templateHash": "3840012105399058327"
     }
   },
   "parameters": {
@@ -175,6 +175,10 @@
             {
               "name": "FUNCTIONS_WORKER_RUNTIME",
               "value": "powershell"
+            },
+            {
+              "name": "PSWorkerInProcConcurrencyUpperBound",
+              "value": "5"
             },
             {
               "name": "KeyVaultName",
