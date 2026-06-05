@@ -1,6 +1,20 @@
 {
   "isFallbackPublicClient": true,
   "signInAudience": "AzureADMultipleOrgs",
+  "api": {
+    "oauth2PermissionScopes": [
+      {
+        "id": "7f3b4c2e-9a1d-4e8f-b5c6-2d0f1a3e7b9c",
+        "value": "McpAccess",
+        "type": "User",
+        "isEnabled": true,
+        "adminConsentDisplayName": "Access ORCHEX MCP tools",
+        "adminConsentDescription": "Allows the application to call ORCHEX MCP tools (read-only) on behalf of the signed-in user.",
+        "userConsentDisplayName": "Access ORCHEX MCP tools",
+        "userConsentDescription": "Allows this application to call ORCHEX MCP tools on your behalf."
+      }
+    ]
+  },
   "displayName": "Orchex-SAM",
   "web": {
     "redirectUris": [
