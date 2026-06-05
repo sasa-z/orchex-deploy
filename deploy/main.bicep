@@ -191,6 +191,11 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'LicenceApiUrl'
           value: 'https://orchex-licence-api-v2-ebgtebbhgsa7dycz.westeurope-01.azurewebsites.net/api/ValidateLicence'
         }
+        {
+          // Same app registration as ApplicationId — used by MCP OAuth JWT validation
+          name: 'McpClientId'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
+        }
       ]
     }
   }
