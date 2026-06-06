@@ -75,6 +75,8 @@ az deployment group create \
 
 ## Security hardening (recommended)
 
+> **Scope — platform/infrastructure security, not tenant-facing features.** This section is about hardening *your own ORCHEX deployment* — the Azure resources that host the portal and who/what can reach the backend. It is **not** about the security capabilities ORCHEX provides for your managed customer tenants (CA health, secure score, anomalous sign-in alerting, etc.). In short: this protects the ORCHEX instance itself, not the tenants it manages.
+
 When you **Link backend** (step 4), Azure automatically enables **App Service Authentication (Easy Auth)** on the Function App. This is the outermost protection: every direct request to the backend is rejected with `401` before any code runs, so only traffic coming through the Static Web App is accepted.
 
 > ⚠️ **Do not disable App Service Authentication** on the Function App (do not switch the action for unauthenticated requests to "Allow") unless you replace it with equivalent network isolation (e.g. a private endpoint). Without it the backend would accept direct unauthenticated requests — the single most important protection for the portal.
