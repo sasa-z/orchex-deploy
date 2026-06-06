@@ -81,6 +81,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     tenantId: subscription().tenantId
     enableSoftDelete: true
     softDeleteRetentionInDays: 90
+    // Prevents permanent purge of secrets/vault within the retention window.
+    // IRREVERSIBLE once enabled — the vault cannot be force-deleted until retention expires.
+    enablePurgeProtection: true
     enabledForDeployment: false
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: false

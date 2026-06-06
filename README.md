@@ -101,6 +101,18 @@ To harden the configuration:
    # Expected: 401  (anything else → Easy Auth is not blocking → investigate)
    ```
 
+### Key Vault
+
+The Key Vault holds the app credentials, refresh token, and break-glass passwords — protecting it is as important as protecting the backend. The template already enables soft delete (90-day retention), scopes the Function App's managed identity to `get`/`list`/`set` on secrets only, and disables deployment/template/disk-encryption access.
+
+4. **Purge protection** — new deployments set `enablePurgeProtection: true` automatically. For an **existing** vault, enable it manually: Azure Portal → Key Vault → **Settings → Properties → Purge protection → Enable**. Without it, anyone with access can permanently purge secrets within the soft-delete window. *(Note: purge protection is irreversible once enabled.)*
+
+5. **Diagnostic logging** — Key Vault → **Monitoring → Diagnostic settings → Add** → select **`AuditEvent`** → send to a Log Analytics workspace. Then alert on dangerous operations (`SecretPurge`, `VaultDelete`, or `SecretGet` from an unexpected identity).
+
+6. **Alert on access-policy / config changes** — Monitor → Alerts → Create → Alert rule, Scope = the Key Vault, Activity Log signal on operations **`Microsoft.KeyVault/vaults/write`** and **`Microsoft.KeyVault/vaults/accessPolicies/write`** → notifies you if someone grants themselves access to the vault.
+
+7. **RBAC lockdown** — limit `Contributor`/`Owner` on the Key Vault resource. In the access-policy model, a Contributor can add an access policy for themselves and read every secret.
+
 ## Resource naming
 
 All resources are prefixed with the `prefix` parameter. Default names:

@@ -119,6 +119,7 @@
         "tenantId": "[subscription().tenantId]",
         "enableSoftDelete": true,
         "softDeleteRetentionInDays": 90,
+        "enablePurgeProtection": true,
         "enabledForDeployment": false,
         "enabledForDiskEncryption": false,
         "enabledForTemplateDeployment": false,
