@@ -2,6 +2,7 @@
   "isFallbackPublicClient": true,
   "signInAudience": "AzureADMultipleOrgs",
   "api": {
+    "requestedAccessTokenVersion": 2,
     "oauth2PermissionScopes": [
       {
         "id": "7f3b4c2e-9a1d-4e8f-b5c6-2d0f1a3e7b9c",

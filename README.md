@@ -62,6 +62,8 @@ az deployment group create \
    - Supported account types: `Accounts in any organizational directory (Multitenant)`
    - Redirect URI: `https://login.microsoftonline.com/common/oauth2/nativeclient`
    - Manifest tab → replace contents with `OrchexManifestEntraID.json` from this repo → Save
+   - **Expose an API → Application ID URI → Add → accept the default `api://{clientId}` → Save**
+     (required for the MCP `McpAccess` scope to be valid; without it MCP OAuth tokens cannot be issued)
    - API permissions → Grant admin consent
    - Certificates & secrets → New client secret → save the value
 
