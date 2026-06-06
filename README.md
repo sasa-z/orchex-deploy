@@ -73,6 +73,32 @@ az deployment group create \
 5. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → Role: `SuperAdmin`
 6. **Run Setup Wizard** — Log in to the portal, complete the setup wizard with your App Registration credentials
 
+## Security hardening (recommended)
+
+When you **Link backend** (step 4), Azure automatically enables **App Service Authentication (Easy Auth)** on the Function App. This is the outermost protection: every direct request to the backend is rejected with `401` before any code runs, so only traffic coming through the Static Web App is accepted.
+
+> ⚠️ **Do not disable App Service Authentication** on the Function App (do not switch the action for unauthenticated requests to "Allow") unless you replace it with equivalent network isolation (e.g. a private endpoint). Without it the backend would accept direct unauthenticated requests — the single most important protection for the portal.
+
+To harden the configuration:
+
+1. **Restrict Azure RBAC** — keep the number of people with `Contributor`/`Owner` on the Function App resource to a minimum. Anyone with that access can change the authentication settings.
+
+2. **Alert on authentication config changes** — get notified immediately if Easy Auth is ever modified:
+   - Azure Portal → **Monitor → Alerts → Create → Alert rule**
+   - **Scope** → select your Function App resource
+   - **Condition** → Signal type **Activity Log** → operation **`Microsoft.Web/sites/config/write`** ("Update Web Apps Configuration", category *Administrative*)
+   - **Actions** → create/select an action group (email/SMS/webhook) to notify you
+   - **Details** → name it e.g. `orchex-funcapp-config-changed` → Create
+   - Note: this fires on any site-config change (incl. app settings), not only auth — that is intentionally broad for a security-critical app. Activity Log alerts are free.
+
+3. **(Optional) Periodic verification** — confirm the backend still rejects forged direct calls. From any machine with internet access:
+   ```bash
+   FUNC="https://<your-funcapp-host>.azurewebsites.net"
+   PRINC=$(printf '{"userId":"x","userRoles":["SuperAdmin"]}' | base64 -w0)
+   curl -s -o /dev/null -w "%{http_code}\n" -X POST "$FUNC/api/GetPortalSettings" -H "x-ms-client-principal: $PRINC"
+   # Expected: 401  (anything else → Easy Auth is not blocking → investigate)
+   ```
+
 ## Resource naming
 
 All resources are prefixed with the `prefix` parameter. Default names:
