@@ -103,15 +103,24 @@ To harden the configuration:
 
 ### Key Vault
 
-The Key Vault holds the app credentials, refresh token, and break-glass passwords — protecting it is as important as protecting the backend. The template already enables soft delete (90-day retention), scopes the Function App's managed identity to `get`/`list`/`set` on secrets only, and disables deployment/template/disk-encryption access.
+The Key Vault holds the app credentials, refresh token, and break-glass passwords — protecting it is as important as protecting the backend. The template already enables soft delete (90-day retention), purge protection, scopes the Function App's managed identity to `get`/`list`/`set` on secrets only, and disables deployment/template/disk-encryption access.
 
-4. **Purge protection** — new deployments set `enablePurgeProtection: true` automatically. For an **existing** vault, enable it manually: Azure Portal → Key Vault → **Settings → Properties → Purge protection → Enable**. Without it, anyone with access can permanently purge secrets within the soft-delete window. *(Note: purge protection is irreversible once enabled.)*
+**Preventing unauthorized access (primary — this is what matters most):**
 
-5. **Diagnostic logging** — Key Vault → **Monitoring → Diagnostic settings → Add** → select **`AuditEvent`** → send to a Log Analytics workspace. Then alert on dangerous operations (`SecretPurge`, `VaultDelete`, or `SecretGet` from an unexpected identity).
+1. **Lock down who can manage the vault** — keep `Contributor`/`Owner` on the Key Vault (and its resource group / subscription) to a minimum. In the default access-policy model, **a Contributor can add an access policy for themselves and read every secret** — so this is the single most important control. Review it regularly.
 
-6. **Alert on access-policy / config changes** — Monitor → Alerts → Create → Alert rule, Scope = the Key Vault, Activity Log signal on operations **`Microsoft.KeyVault/vaults/write`** and **`Microsoft.KeyVault/vaults/accessPolicies/write`** → notifies you if someone grants themselves access to the vault.
+2. **(Optional, advanced) Switch to the RBAC authorization model** — this decouples "manage the vault" from "read secrets": a Contributor no longer gets secret access automatically; it requires an explicit Azure RBAC data role. It also unlocks PIM (just-in-time, time-bound secret access) and access reviews, which the access-policy model does not support.
+   - In `main.bicep`, set `enableRbacAuthorization: true` on the vault and **remove** the `keyVaultAccessPolicy` resource (access policies are ignored in RBAC mode).
+   - Grant the Function App's managed identity the **`Key Vault Secrets Officer`** role on the vault (`get`/`list`/`set` — the app needs `set` because the Setup Wizard writes credentials; the read-only `Key Vault Secrets User` is not enough).
+   - ⚠️ **Deployment then requires `Owner` or `User Access Administrator`** (not just `Contributor`), because creating role assignments needs `Microsoft.Authorization/roleAssignments/write`. Only choose this if whoever deploys has that level.
 
-7. **RBAC lockdown** — limit `Contributor`/`Owner` on the Key Vault resource. In the access-policy model, a Contributor can add an access policy for themselves and read every secret.
+**Detect and recover (secondary — does not prevent, but limits damage):**
+
+3. **Purge protection** — new deployments set `enablePurgeProtection: true` automatically. For an **existing** vault, enable it manually: Azure Portal → Key Vault → **Settings → Properties → Purge protection → Enable**. Stops permanent purge of secrets within the soft-delete window. *(Irreversible once enabled.)*
+
+4. **Alert on access-policy / config changes** — the detective complement to #1: Monitor → Alerts → Create → Alert rule, Scope = the Key Vault, Activity Log signal on **`Microsoft.KeyVault/vaults/write`** and **`Microsoft.KeyVault/vaults/accessPolicies/write`** → notifies you the moment someone grants themselves access to the vault.
+
+5. **Diagnostic logging** — Key Vault → **Monitoring → Diagnostic settings → Add** → select **`AuditEvent`** → Log Analytics. Optionally alert on destructive operations (`SecretPurge`, `VaultDelete`) — useful against sabotage/ransomware, lower priority than the access controls above.
 
 ## Resource naming
 
