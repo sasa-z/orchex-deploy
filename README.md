@@ -67,11 +67,9 @@ az deployment group create \
    - API permissions → Grant admin consent
    - Certificates & secrets → New client secret → save the value
 
-2. **Register client for deployment** — Add publish profile and SWA token as GitHub Secrets in `orchex-api` and `orchex` repos, add entry to `.github/clients.json` in each repo
-3. **Create Static Web App** — In Azure Portal, create SWA with Source: **Other** (not GitHub), then get deployment token via `az staticwebapp secrets list`
-4. **Link backend** — Azure Portal → SWA → APIs → Link backend → select Function App
-5. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → Role: `SuperAdmin`
-6. **Run Setup Wizard** — Log in to the portal, complete the setup wizard with your App Registration credentials
+2. **Link backend** — Azure Portal → Static Web App → APIs → Link backend → select the Function App deployed in step 1
+3. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → enter your email → Role: `SuperAdmin`
+4. **Run Setup Wizard** — Log in to the portal (URL shown in the deployment outputs as `staticWebAppHostname`), complete the setup wizard with your App Registration credentials from step 1
 
 ## Security hardening (recommended)
 
