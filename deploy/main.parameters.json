@@ -8,9 +8,6 @@
     "keyVaultName": {
       "value": "orchex-kv"
     },
-    "storageAccountName": {
-      "value": "orchexstorage"
-    },
     "functionAppName": {
       "value": "orchex-api"
     },

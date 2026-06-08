@@ -10,7 +10,7 @@ param location string = resourceGroup().location
 param keyVaultName string = '${prefix}-kv'
 
 @description('Name of the Storage Account. Must be globally unique, lowercase, max 24 chars.')
-param storageAccountName string = '${prefix}storage'
+param storageAccountName string = '${prefix}${take(uniqueString(resourceGroup().id), 8)}str'
 
 @description('Name of the Function App. Must be globally unique.')
 param functionAppName string = '${prefix}-api'
