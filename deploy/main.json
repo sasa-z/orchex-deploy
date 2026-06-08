@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "1086346118135967579"
+      "templateHash": "1628879152314050204"
     }
   },
   "parameters": {
@@ -34,7 +34,7 @@
     },
     "storageAccountName": {
       "type": "string",
-      "defaultValue": "[format('{0}storage', parameters('prefix'))]",
+      "defaultValue": "[format('{0}{1}str', parameters('prefix'), take(uniqueString(resourceGroup().id), 8))]",
       "metadata": {
         "description": "Name of the Storage Account. Must be globally unique, lowercase, max 24 chars."
       }
