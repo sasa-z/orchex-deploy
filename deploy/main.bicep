@@ -140,6 +140,10 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
         }
         {
+          name: 'StorageConnectionString'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+        }
+        {
           name: 'FUNCTIONS_EXTENSION_VERSION'
           value: '~4'
         }
