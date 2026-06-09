@@ -18,6 +18,12 @@ param functionAppName string = '${prefix}-api'
 @description('Name of the Static Web App. Must be globally unique.')
 param staticWebAppName string = '${prefix}-portal'
 
+@description('Name of the Log Analytics Workspace.')
+param logAnalyticsName string = '${prefix}-logs'
+
+@description('Name of the Application Insights instance.')
+param appInsightsName string = '${prefix}-insights'
+
 // ============================================
 // STORAGE ACCOUNT
 // ============================================
@@ -63,6 +69,35 @@ resource blobLifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPolici
         }
       ]
     }
+  }
+}
+
+// ============================================
+// LOG ANALYTICS WORKSPACE
+// ============================================
+
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: logAnalyticsName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+  }
+}
+
+// ============================================
+// APPLICATION INSIGHTS
+// ============================================
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalytics.id
   }
 }
 
@@ -135,6 +170,10 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         supportCredentials: false
       }
       appSettings: [
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
         {
           name: 'AzureWebJobsStorage'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
@@ -264,3 +303,5 @@ output staticWebAppHostname string = staticWebApp.properties.defaultHostname
 output keyVaultName string = keyVault.name
 output storageAccountName string = storageAccount.name
 output functionAppPrincipalId string = functionApp.identity.principalId
+output appInsightsName string = appInsights.name
+output appInsightsConnectionString string = appInsights.properties.ConnectionString
