@@ -205,6 +205,13 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: '1'
         }
         {
+          // Run from the deployed zip mounted read-only (atomic deploy + faster cold start)
+          // instead of extracting hundreds of files onto the Azure Files content share. CIPP
+          // uses this. Setting it makes the functions-action zipdeploy store+mount the package.
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
+        {
           name: 'KeyVaultName'
           value: keyVaultName
         }
