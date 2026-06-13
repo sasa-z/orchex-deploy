@@ -191,11 +191,18 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: 'powershell'
         }
         {
-          // Allows a single PowerShell worker to run multiple activity invocations
-          // concurrently via runspaces. Must align with host.json
-          // maxConcurrentActivityFunctions, otherwise the worker serializes activities.
+          // Max PowerShell runspaces per worker — lets ONE warm worker serve this many
+          // concurrent HTTP invocations instead of the host spinning up a cold worker per
+          // request (the post-deploy 500 burst). CIPP uses 10; this is the value the portal's
+          // refresh burst is sized for. Each invocation gets its own runspace (isolated state;
+          // shared cache is AppDomain, thread-safe).
           name: 'PSWorkerInProcConcurrencyUpperBound'
-          value: '5'
+          value: '10'
+        }
+        {
+          // In-process concurrency (above) instead of multiple worker processes.
+          name: 'FUNCTIONS_WORKER_PROCESS_COUNT'
+          value: '1'
         }
         {
           name: 'KeyVaultName'
