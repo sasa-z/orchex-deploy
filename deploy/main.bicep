@@ -275,6 +275,24 @@ resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2023-07-
 }
 
 // ============================================
+// MCP CLIENT MANAGEMENT — function MI can write its own Easy Auth (authsettingsV2)
+// ============================================
+// The "MCP Clients" portal feature adds each new client's appId to the function's
+// App Service Authentication via the function's managed identity. Writing authsettingsV2
+// is an ARM operation, so the MI needs Contributor on this site (scoped to the site only).
+
+resource mcpEasyAuthRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(functionApp.id, 'Contributor', 'mcp-easyauth')
+  scope: functionApp
+  properties: {
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    // Contributor
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+  }
+}
+
+// ============================================
 // STATIC WEB APP
 // ============================================
 
