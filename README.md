@@ -71,55 +71,6 @@ az deployment group create \
 3. **Add first admin** — Azure Portal → Static Web App → Role Management → Invite → enter your email → Role: `SuperAdmin`
 4. **Run Setup Wizard** — Log in to the portal (URL shown in the deployment outputs as `staticWebAppHostname`), complete the setup wizard with your App Registration credentials from step 1
 
-## Security hardening (recommended)
-
-> **Scope — platform/infrastructure security, not tenant-facing features.** This section is about hardening *your own ORCHEX deployment* — the Azure resources that host the portal and who/what can reach the backend. It is **not** about the security capabilities ORCHEX provides for your managed customer tenants (CA health, secure score, anomalous sign-in alerting, etc.). In short: this protects the ORCHEX instance itself, not the tenants it manages.
-
-When you **Link backend** (step 4), Azure automatically enables **App Service Authentication (Easy Auth)** on the Function App. This is the outermost protection: every direct request to the backend is rejected with `401` before any code runs, so only traffic coming through the Static Web App is accepted.
-
-> ⚠️ **Do not disable App Service Authentication** on the Function App (do not switch the action for unauthenticated requests to "Allow") unless you replace it with equivalent network isolation (e.g. a private endpoint). Without it the backend would accept direct unauthenticated requests — the single most important protection for the portal.
-
-To harden the configuration:
-
-1. **Restrict Azure RBAC** — keep the number of people with `Contributor`/`Owner` on the Function App resource to a minimum. Anyone with that access can change the authentication settings.
-
-2. **Alert on authentication config changes** — get notified immediately if Easy Auth is ever modified:
-   - Azure Portal → **Monitor → Alerts → Create → Alert rule**
-   - **Scope** → select your Function App resource
-   - **Condition** → Signal type **Activity Log** → operation **`Microsoft.Web/sites/config/write`** ("Update Web Apps Configuration", category *Administrative*)
-   - **Actions** → create/select an action group (email/SMS/webhook) to notify you
-   - **Details** → name it e.g. `orchex-funcapp-config-changed` → Create
-   - Note: this fires on any site-config change (incl. app settings), not only auth — that is intentionally broad for a security-critical app. Activity Log alerts are free.
-
-3. **(Optional) Periodic verification** — confirm the backend still rejects forged direct calls. From any machine with internet access:
-   ```bash
-   FUNC="https://<your-funcapp-host>.azurewebsites.net"
-   PRINC=$(printf '{"userId":"x","userRoles":["SuperAdmin"]}' | base64 -w0)
-   curl -s -o /dev/null -w "%{http_code}\n" -X POST "$FUNC/api/GetPortalSettings" -H "x-ms-client-principal: $PRINC"
-   # Expected: 401  (anything else → Easy Auth is not blocking → investigate)
-   ```
-
-### Key Vault
-
-The Key Vault holds the app credentials, refresh token, and break-glass passwords — protecting it is as important as protecting the backend. The template already enables soft delete (90-day retention), purge protection, scopes the Function App's managed identity to `get`/`list`/`set` on secrets only, and disables deployment/template/disk-encryption access.
-
-**Preventing unauthorized access (primary — this is what matters most):**
-
-1. **Lock down who can manage the vault** — keep `Contributor`/`Owner` on the Key Vault (and its resource group / subscription) to a minimum. In the default access-policy model, **a Contributor can add an access policy for themselves and read every secret** — so this is the single most important control. Review it regularly.
-
-2. **(Optional, advanced) Switch to the RBAC authorization model** — this decouples "manage the vault" from "read secrets": a Contributor no longer gets secret access automatically; it requires an explicit Azure RBAC data role. It also unlocks PIM (just-in-time, time-bound secret access) and access reviews, which the access-policy model does not support.
-   - In `main.bicep`, set `enableRbacAuthorization: true` on the vault and **remove** the `keyVaultAccessPolicy` resource (access policies are ignored in RBAC mode).
-   - Grant the Function App's managed identity the **`Key Vault Secrets Officer`** role on the vault (`get`/`list`/`set` — the app needs `set` because the Setup Wizard writes credentials; the read-only `Key Vault Secrets User` is not enough).
-   - ⚠️ **Deployment then requires `Owner` or `User Access Administrator`** (not just `Contributor`), because creating role assignments needs `Microsoft.Authorization/roleAssignments/write`. Only choose this if whoever deploys has that level.
-
-**Detect and recover (secondary — does not prevent, but limits damage):**
-
-3. **Purge protection** — new deployments set `enablePurgeProtection: true` automatically. For an **existing** vault, enable it manually: Azure Portal → Key Vault → **Settings → Properties → Purge protection → Enable**. Stops permanent purge of secrets within the soft-delete window. *(Irreversible once enabled.)*
-
-4. **Alert on access-policy / config changes** — the detective complement to #1: Monitor → Alerts → Create → Alert rule, Scope = the Key Vault, Activity Log signal on **`Microsoft.KeyVault/vaults/write`** and **`Microsoft.KeyVault/vaults/accessPolicies/write`** → notifies you the moment someone grants themselves access to the vault.
-
-5. **Diagnostic logging** — Key Vault → **Monitoring → Diagnostic settings → Add** → select **`AuditEvent`** → Log Analytics. Optionally alert on destructive operations (`SecretPurge`, `VaultDelete`) — useful against sabotage/ransomware, lower priority than the access controls above.
-
 ## Resource naming
 
 All resources are prefixed with the `prefix` parameter. Default names:
