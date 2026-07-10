@@ -52,6 +52,16 @@
       "resourceAppId": "00000003-0000-0000-c000-000000000000",
       "resourceAccess": [
         {
+          "id": "b7281c63-cd4d-40c3-b721-73aa8ee7c3a8",
+          "type": "Scope",
+          "name": "CopilotPolicySettings.Read"
+        },
+        {
+          "id": "e2edbde8-4448-4e49-8ebb-d53ba72df0f3",
+          "type": "Scope",
+          "name": "CopilotPolicySettings.ReadWrite"
+        },
+        {
           "id": "9e4862a5-b68f-479e-848a-4e07e25c9916",
           "type": "Scope",
           "name": "IdentityRiskEvent.ReadWrite.All"
