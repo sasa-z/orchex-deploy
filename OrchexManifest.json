@@ -292,7 +292,7 @@
           "name": "IdentityRiskyUser.Read.All"
         },
         {
-          "id": "656f6061-f14a-4fa7-a3f2-9b7b8cb71d81",
+          "id": "656f6061-f9fe-4807-9708-6a2e0934df76",
           "type": "Role",
           "name": "IdentityRiskyUser.ReadWrite.All"
         },
