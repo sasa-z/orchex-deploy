@@ -142,6 +142,11 @@
           "name": "AppRoleAssignment.ReadWrite.All"
         },
         {
+          "id": "06b708a9-e830-4db3-a914-8e69da51d44f",
+          "type": "Role",
+          "name": "AppRoleAssignment.ReadWrite.All"
+        },
+        {
           "id": "5e1e9171-754d-478c-812c-f1755a9a4c2d",
           "type": "Role",
           "name": "AuditLogsQuery.Read.All"
