@@ -287,6 +287,26 @@
           "name": "IdentityRiskyUser.ReadWrite.All"
         },
         {
+          "id": "dc5007c0-2d7d-4c42-879c-2dab87571379",
+          "type": "Role",
+          "name": "IdentityRiskyUser.Read.All"
+        },
+        {
+          "id": "656f6061-f14a-4fa7-a3f2-9b7b8cb71d81",
+          "type": "Role",
+          "name": "IdentityRiskyUser.ReadWrite.All"
+        },
+        {
+          "id": "6e472fd1-ad78-48da-a0f0-97ab2c6b769e",
+          "type": "Role",
+          "name": "IdentityRiskEvent.Read.All"
+        },
+        {
+          "id": "38d9df27-64da-44fd-b7c5-a6fbac20248f",
+          "type": "Role",
+          "name": "UserAuthenticationMethod.Read.All"
+        },
+        {
           "id": "89fe6a52-be36-487e-b7d8-d061c450a026",
           "type": "Scope",
           "name": "Sites.ReadWrite.All"
