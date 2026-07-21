@@ -212,6 +212,14 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: '1'
         }
         {
+          // Load the Windows user profile so a CNG key-store path exists for the worker. Without it,
+          // loading the SAM certificate PFX (private key, for SharePoint cert-based app-only auth)
+          // fails on the Windows Consumption plan with the misleading
+          // "The system cannot find the file specified" — both EphemeralKeySet and Exportable throw.
+          name: 'WEBSITE_LOAD_USER_PROFILE'
+          value: '1'
+        }
+        {
           name: 'KeyVaultName'
           value: keyVaultName
         }
