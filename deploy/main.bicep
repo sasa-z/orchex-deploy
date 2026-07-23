@@ -67,6 +67,27 @@ resource blobLifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPolici
             }
           }
         }
+        {
+          // Graph usage-report cache (Invoke-GraphReportAPI). Own container so its retention is
+          // decoupled from the transient 1-day audit exports above. 3 days: the ~20h cache TTL is
+          // well inside it, and it gives a multi-day stale-on-throttle fallback + orphan cleanup.
+          name: 'delete-report-cache'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            filters: {
+              blobTypes: [ 'blockBlob' ]
+              prefixMatch: [ 'orchex-report-cache/' ]
+            }
+            actions: {
+              baseBlob: {
+                delete: {
+                  daysAfterModificationGreaterThan: 3
+                }
+              }
+            }
+          }
+        }
       ]
     }
   }
