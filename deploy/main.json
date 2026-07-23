@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.45.15.27210",
-      "templateHash": "15455181587705279680"
+      "templateHash": "4120973668921221940"
     }
   },
   "parameters": {
@@ -144,6 +144,50 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/webtests",
+      "apiVersion": "2022-06-15",
+      "name": "[format('{0}-keepwarm', parameters('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "[format('hidden-link:{0}', resourceId('Microsoft.Insights/components', parameters('appInsightsName')))]": "Resource"
+      },
+      "kind": "standard",
+      "properties": {
+        "SyntheticMonitorId": "[format('{0}-keepwarm', parameters('prefix'))]",
+        "Name": "[format('{0} keep-warm ping', parameters('prefix'))]",
+        "Enabled": true,
+        "Frequency": 300,
+        "Timeout": 30,
+        "Kind": "standard",
+        "RetryEnabled": true,
+        "Locations": [
+          {
+            "Id": "emea-nl-ams-azr"
+          },
+          {
+            "Id": "us-va-ash-azr"
+          },
+          {
+            "Id": "us-il-ch1-azr"
+          }
+        ],
+        "Request": {
+          "RequestUrl": "[format('https://{0}/api/Ping', reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2023-01-01').defaultHostName)]",
+          "HttpVerb": "GET",
+          "ParseDependentRequests": false
+        },
+        "ValidationRules": {
+          "ExpectedHttpStatusCode": 200,
+          "SSLCheck": true,
+          "SSLCertRemainingLifetimeCheck": 7
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', parameters('appInsightsName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
       ]
     },
     {
