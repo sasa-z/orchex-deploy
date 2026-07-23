@@ -107,12 +107,18 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 // The Function App runs on Consumption (Y1/Dynamic) — no Always On — so it is
 // evicted after idle and the next interactive request pays a cold start (host
 // allocation + PowerShell module load). This test pings the anonymous /api/Ping
-// endpoint every 5 min (the platform minimum) from a few regions, which keeps one
-// instance allocated and the PS worker (CAMPCore already loaded) warm. /api/Ping
-// returns a static 200 and is excluded from Easy Auth in-app (Assert-CAMPPingPathExcluded),
-// so the prober reaches the Functions runtime instead of being 401'd at the auth layer.
+// endpoint every 10 min from a single region, which keeps one instance allocated and
+// the PS worker (CAMPCore already loaded) warm. /api/Ping returns a static 200 and is
+// excluded from Easy Auth in-app (Assert-CAMPPingPathExcluded), so the prober reaches
+// the Functions runtime instead of being 401'd at the auth layer.
 // Prober only — no metric alert is attached, so it never pages; it just generates
 // keep-warm traffic (and doubles as a basic uptime signal in App Insights).
+//
+// Frequency/locations are a cost knob — standard tests bill per execution (classic ping
+// tests were free but are being retired). 1 location x 10 min (~4.4k executions/mo) holds
+// per-client cost to ~$2-3/mo (paid by the client's subscription), while 10 min stays
+// safely under the ~20-min Consumption idle-eviction window. 5 min ~2x cost for margin you
+// don't need; 15 min risks eviction (only ~5-min headroom) — don't.
 
 resource keepWarmTest 'Microsoft.Insights/webtests@2022-06-15' = {
   name: '${prefix}-keepwarm'
@@ -126,14 +132,18 @@ resource keepWarmTest 'Microsoft.Insights/webtests@2022-06-15' = {
     SyntheticMonitorId: '${prefix}-keepwarm'
     Name: '${prefix} keep-warm ping'
     Enabled: true
-    Frequency: 300
+    Frequency: 600
     Timeout: 30
     Kind: 'standard'
     RetryEnabled: true
     Locations: [
-      { Id: 'emea-nl-ams-azr' }
+      // One prober is enough for keep-warm (heartbeat + frontend retry are the backups);
+      // more locations only multiply the per-execution cost. The portal warns that <5
+      // locations risk false alarms — that's about ALERT reliability, and no alert is
+      // attached here, so it does not apply. This is just the ping origin (region-agnostic
+      // for keep-warm); change it to one nearer a non-US client if you want a cleaner
+      // uptime signal.
       { Id: 'us-va-ash-azr' }
-      { Id: 'us-il-ch1-azr' }
     ]
     Request: {
       RequestUrl: 'https://${functionApp.properties.defaultHostName}/api/Ping'
