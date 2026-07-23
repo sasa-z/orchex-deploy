@@ -102,6 +102,53 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 // ============================================
+// KEEP-WARM AVAILABILITY TEST
+// ============================================
+// The Function App runs on Consumption (Y1/Dynamic) — no Always On — so it is
+// evicted after idle and the next interactive request pays a cold start (host
+// allocation + PowerShell module load). This test pings the anonymous /api/Ping
+// endpoint every 5 min (the platform minimum) from a few regions, which keeps one
+// instance allocated and the PS worker (CAMPCore already loaded) warm. /api/Ping
+// returns a static 200 and is excluded from Easy Auth in-app (Assert-CAMPPingPathExcluded),
+// so the prober reaches the Functions runtime instead of being 401'd at the auth layer.
+// Prober only — no metric alert is attached, so it never pages; it just generates
+// keep-warm traffic (and doubles as a basic uptime signal in App Insights).
+
+resource keepWarmTest 'Microsoft.Insights/webtests@2022-06-15' = {
+  name: '${prefix}-keepwarm'
+  location: location
+  tags: {
+    // Required hidden-link tag binds the web test to the App Insights component.
+    'hidden-link:${appInsights.id}': 'Resource'
+  }
+  kind: 'standard'
+  properties: {
+    SyntheticMonitorId: '${prefix}-keepwarm'
+    Name: '${prefix} keep-warm ping'
+    Enabled: true
+    Frequency: 300
+    Timeout: 30
+    Kind: 'standard'
+    RetryEnabled: true
+    Locations: [
+      { Id: 'emea-nl-ams-azr' }
+      { Id: 'us-va-ash-azr' }
+      { Id: 'us-il-ch1-azr' }
+    ]
+    Request: {
+      RequestUrl: 'https://${functionApp.properties.defaultHostName}/api/Ping'
+      HttpVerb: 'GET'
+      ParseDependentRequests: false
+    }
+    ValidationRules: {
+      ExpectedHttpStatusCode: 200
+      SSLCheck: true
+      SSLCertRemainingLifetimeCheck: 7
+    }
+  }
+}
+
+// ============================================
 // KEY VAULT
 // ============================================
 
