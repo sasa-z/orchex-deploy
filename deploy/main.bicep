@@ -247,6 +247,16 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         ]
         supportCredentials: false
       }
+      // DO NOT ADD 'WEBSITE_TIME_ZONE'. The Function App must stay on UTC, which is the
+      // Azure default and is therefore an absence rather than a setting — easy to break by
+      // adding one line here or a setting in the portal.
+      //
+      // The backend writes and compares every timestamp in UTC, and the portal converts to
+      // the viewer's own timezone in the browser. Moving the host off UTC would make that
+      // conversion double-count: timestamps written by the host would be local time labelled
+      // as UTC, and the audit-log lookback windows of the event-based alerts would widen by
+      // the offset. A customer in another region needs no change here — the Azure region
+      // does not set the host timezone, only this setting does.
       appSettings: [
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
