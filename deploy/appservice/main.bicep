@@ -1,0 +1,247 @@
+// Linux App Service running the orchex container, replacing the Function App + Static Web App pair.
+//
+// Deployed alongside ../main.bicep rather than in place of it: the Functions deployment stays until
+// cutover so there is somewhere to fall back to, and having both here makes the difference legible
+// and the eventual deletion one commit.
+//
+// Storage, Key Vault, Log Analytics and Application Insights are shared with the existing
+// deployment and referenced, not recreated. Orchestration state lands in new tables in the same
+// account, so a run started under one host is visible to the other.
+
+@description('Prefix for resource names. Must match the Functions deployment so the shared resources resolve.')
+param prefix string = 'orchex'
+
+@description('Azure region for all resources.')
+param location string = resourceGroup().location
+
+@description('Name of the App Service. Must be globally unique.')
+param webAppName string = '${prefix}-app'
+
+@description('Container image to run, including tag.')
+param containerImage string = 'ghcr.io/sasa-z/orchex-api:latest'
+
+@description('Registry the image is pulled from. Public GHCR needs no credentials.')
+param containerRegistryUrl string = 'https://ghcr.io'
+
+@description('Existing Key Vault holding the app registration secrets.')
+param keyVaultName string = '${prefix}-kv'
+
+@description('Existing Storage Account.')
+param storageAccountName string
+
+@description('Existing Application Insights instance.')
+param appInsightsName string = '${prefix}-insights'
+
+@description('Licence validation endpoint.')
+param licenceApiUrl string = 'https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence'
+
+@description('Runspaces serving HTTP requests.')
+param httpPoolSize int = 4
+
+@description('Runspaces serving background work — the ceiling on parallel activities.')
+param backgroundPoolSize int = 8
+
+// ============================================================================
+// Existing resources
+// ============================================================================
+
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: keyVaultName
+}
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
+  name: storageAccountName
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: appInsightsName
+}
+
+// ============================================================================
+// Plan and app
+// ============================================================================
+
+// B2 rather than B1: the PowerShell modules are memory-hungry, and measured at roughly 40 MB per
+// runspace over a ~550 MB base, twelve runspaces come to about 1 GB. B1's 1.75 GB leaves no room.
+// Basic is always-on, which is the whole point — Consumption's idle eviction is what this replaces.
+resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+  name: '${webAppName}-plan'
+  location: location
+  kind: 'linux'
+  sku: {
+    name: 'B2'
+    tier: 'Basic'
+  }
+  properties: {
+    reserved: true // required for Linux
+  }
+}
+
+resource webApp 'Microsoft.Web/sites@2023-01-01' = {
+  name: webAppName
+  location: location
+  kind: 'app,linux,container'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    serverFarmId: appServicePlan.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: 'DOCKER|${containerImage}'
+      alwaysOn: true
+      http20Enabled: true
+      // Answered without touching PowerShell, so it stays truthful while the pool is saturated.
+      healthCheckPath: '/health'
+      appSettings: [
+        // ── Container ────────────────────────────────────────────────────────
+        {
+          name: 'DOCKER_REGISTRY_SERVER_URL'
+          value: containerRegistryUrl
+        }
+        {
+          // The container listens here; without this App Service probes port 80 and the app looks
+          // dead however healthy it is.
+          name: 'WEBSITES_PORT'
+          value: '8080'
+        }
+        {
+          // Otherwise App Service mounts persistent storage over /home, which would shadow nothing
+          // here today but makes the mount a silent hazard for anything later placed under it.
+          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+          value: 'false'
+        }
+
+        // ── Runtime sizing ───────────────────────────────────────────────────
+        // Background pool is the real ceiling on parallel activities: every dispatched operation
+        // holds one for its duration. Sized against what Functions ran, which was 10 concurrent
+        // activities in a single worker.
+        {
+          name: 'ORCHEX_HTTP_POOL_SIZE'
+          value: string(httpPoolSize)
+        }
+        {
+          name: 'ORCHEX_BG_POOL_SIZE'
+          value: string(backgroundPoolSize)
+        }
+        {
+          // Off until this deployment is the one that owns scheduled work. Two hosts both firing
+          // timers would run every nightly sweep twice.
+          name: 'ORCHEX_SCHEDULER_ENABLED'
+          value: 'false'
+        }
+
+        // ── Application ──────────────────────────────────────────────────────
+        // Spelling matters: environment variable names are case-sensitive on Linux, and orchex-api
+        // reads exactly these. A mismatch does not fail loudly — the tenant check reads
+        // "if ($mspTenantId)", so an empty read skips it and admits foreign tenants.
+        {
+          name: 'TenantId'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=TenantId)'
+        }
+        {
+          name: 'ApplicationId'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
+        }
+        {
+          name: 'ApplicationSecret'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationSecret)'
+        }
+        {
+          name: 'RefreshToken'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RefreshToken)'
+        }
+        {
+          name: 'LicenceKey'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=LicenceKey)'
+        }
+        {
+          // Shared with the Functions deployment, and where orchestration state is written too.
+          name: 'StorageConnectionString'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+        }
+        {
+          name: 'KeyVaultName'
+          value: keyVaultName
+        }
+        {
+          name: 'LicenceApiUrl'
+          value: licenceApiUrl
+        }
+        {
+          // Same app registration; MCP tokens are validated against it.
+          name: 'McpClientId'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
+        }
+        {
+          name: 'PublicClientApp'
+          value: 'true'
+        }
+        {
+          name: 'SetupComplete'
+          value: 'true'
+        }
+        {
+          // The heartbeat chain relit itself so scheduled work survived the host being evicted
+          // overnight. Nothing evicts this one. Also set in the image; repeated here so the reason
+          // is visible to anyone reading the deployment.
+          name: 'CAMPHeartbeatDisabled'
+          value: 'true'
+        }
+
+        // ── Telemetry ────────────────────────────────────────────────────────
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
+      ]
+    }
+  }
+}
+
+// Deliberately absent: WEBSITE_TIME_ZONE. Every timestamp is written and compared in UTC, and a
+// local zone here would corrupt those comparisons rather than fail them.
+//
+// Also absent: WEBSITE_RUN_FROM_PACKAGE and WEBSITE_LOAD_USER_PROFILE. The first is a Functions
+// zip-deploy mechanism with no container equivalent. The second existed so the Windows user profile
+// held the CNG key store for certificate-based SharePoint auth; Linux has no such requirement.
+
+// ============================================================================
+// Permissions
+// ============================================================================
+
+// Key Vault references above are resolved by the platform using this identity, so without the
+// policy the app starts and every secret reads as the literal '@Microsoft.KeyVault(...)' string
+// rather than failing — which is how that mistake usually gets found, late.
+resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2023-07-01' = {
+  parent: keyVault
+  name: 'add'
+  properties: {
+    accessPolicies: [
+      {
+        tenantId: subscription().tenantId
+        objectId: webApp.identity.principalId
+        permissions: {
+          secrets: ['get', 'list', 'set']
+        }
+      }
+    ]
+  }
+}
+
+// The portal's MCP client management writes this site's own authsettingsV2 when a client is
+// registered, which is an ARM operation. Scoped to the site, not the resource group.
+resource mcpEasyAuthRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(webApp.id, 'Contributor', 'mcp-easyauth')
+  scope: webApp
+  properties: {
+    principalId: webApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    // Contributor
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+  }
+}
+
+output webAppName string = webApp.name
+output webAppUrl string = 'https://${webApp.properties.defaultHostName}'
+output principalId string = webApp.identity.principalId
