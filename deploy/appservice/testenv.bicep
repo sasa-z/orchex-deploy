@@ -1,0 +1,73 @@
+// The storage account and key vault a side-by-side test deployment needs.
+//
+// main.bicep expects both to exist already, because at a customer they do — the Functions
+// deployment created them. A test environment in its own resource group starts empty, and this
+// fills that gap.
+//
+// Deliberately separate from the customer's own resources. Fresh tables mean the setup wizard runs
+// from the beginning, which is the point of the exercise; sharing them would mean two deployments
+// writing the same rows.
+
+@description('Prefix for resource names.')
+param prefix string = 'orchextest'
+
+@description('Azure region.')
+param location string = resourceGroup().location
+
+@description('Object id of whoever runs the setup wizard, granted secret access on the vault.')
+param operatorObjectId string = ''
+
+var storageName = toLower(take(replace('${prefix}stor', '-', ''), 24))
+var vaultName = take('${prefix}-kv', 24)
+
+resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: storageName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    supportsHttpsTrafficOnly: true
+    allowBlobPublicAccess: false
+  }
+}
+
+// RBAC rather than access policies, so the App Service's managed identity can be granted access
+// by main.bicep without reading and rewriting a policy list.
+resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: vaultName
+  location: location
+  properties: {
+    tenantId: subscription().tenantId
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    enableRbacAuthorization: true
+    enableSoftDelete: true
+    // Short, because a test vault gets torn down and recreated under the same name, and the
+    // default retention makes the name unavailable for ninety days.
+    softDeleteRetentionInDays: 7
+  }
+}
+
+var secretsOfficer = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'b86a8fe4-44ce-4948-aee5-eccb2c155cd7'
+)
+
+resource operatorAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(operatorObjectId)) {
+  scope: vault
+  name: guid(vault.id, operatorObjectId, secretsOfficer)
+  properties: {
+    roleDefinitionId: secretsOfficer
+    principalId: operatorObjectId
+    principalType: 'User'
+  }
+}
+
+output storageAccountName string = storage.name
+output keyVaultName string = vault.name
+output connectionStringHint string = 'az storage account show-connection-string -n ${storage.name} -g ${resourceGroup().name} --query connectionString -o tsv'

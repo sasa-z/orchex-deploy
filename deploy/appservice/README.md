@@ -38,3 +38,51 @@ way the Functions one was, and grant the same app registration.
 
 The scheduler ships disabled. Turn `ORCHEX_SCHEDULER_ENABLED` on only when this deployment is the
 one that owns scheduled work: two hosts both firing timers run every nightly sweep twice.
+
+## Testing side by side
+
+The customer's Functions deployment keeps running untouched. The container goes into a resource
+group of its own, with its own storage and key vault, so nothing is shared and nothing is
+duplicated:
+
+```bash
+az group create -n orchex-test -l westeurope
+
+# Storage and key vault, which main.bicep expects to exist already.
+az deployment group create -g orchex-test -f deploy/appservice/testenv.bicep \
+  -p operatorObjectId=$(az ad signed-in-user show --query id -o tsv)
+
+# Registry credentials for this deployment. A token password is readable only when generated.
+az acr token credential generate --registry orchexregistry --name pull-test \
+  --password1 --expiration-in-days 90
+az keyvault secret set --vault-name orchextest-kv --name RegistryUsername --value pull-test
+az keyvault secret set --vault-name orchextest-kv --name RegistryPassword --value '<password1>'
+
+az deployment group create -g orchex-test -f deploy/appservice/main.bicep \
+  -p containerRegistryHost=orchexregistry-<suffix>.azurecr.io \
+     containerImage=orchex-api:develop \
+     keyVaultName=orchextest-kv \
+     storageAccountName=<from the previous output>
+```
+
+`orchex-api:develop` rather than `:latest` — `latest` is what customer deployments pull, and only
+main moves it.
+
+Then set the repository variable `APP_SERVICE_NAME` so pushes to develop deploy here.
+
+### Two things to get right before opening it
+
+**Timers stay off.** Leave `ORCHEX_SCHEDULER_ENABLED` unset. Most timers do nothing without
+configuration, and fresh tables have none — but `Start-TokenRenewal` writes a new refresh token
+obtained from the same application the customer's deployment uses, which is shared state outside
+this resource group. Turn the scheduler on later, deliberately, once the rest is known to work.
+
+**It is reachable before it can authenticate.** Sign-in cannot be configured until the site is
+running (see the runtime's `docs/easyauth-setup.md`), so there is a window where the portal answers
+anyone who finds the URL. Nothing is configured yet, so there is little to take, but the window
+should not be left open:
+
+```bash
+az webapp config access-restriction add -g orchex-test -n <app> \
+  --rule-name operator --action Allow --ip-address <your-ip>/32 --priority 100
+```
