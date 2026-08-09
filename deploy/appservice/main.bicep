@@ -105,10 +105,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-// Written here rather than left in the site's configuration. An app setting's value is readable by
-// anyone with Contributor on the app, and a registry token is the one credential in this deployment
-// that belongs to the vendor rather than to the customer — a reference costs nothing and keeps it
-// out of a screen people open for unrelated reasons.
+// Kept here as well as in the site's configuration, so the value survives somewhere the customer
+// does not open for unrelated reasons — and so a rotation has one place to be written. The site
+// itself cannot use a reference for these two: the image is pulled before the site runs, which is
+// before references resolve.
 resource registryUsernameSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'RegistryUsername'
@@ -148,12 +148,16 @@ var baseAppSettings = [
     value: 'https://${containerRegistryHost}'
   }
   {
+    // Plain values, not Key Vault references. The platform pulls the image before the site runs,
+    // and a reference is only resolved once it does — so the password reads as empty at exactly the
+    // moment it is needed, and the pull fails with "unauthorized" while the vault holds the right
+    // value all along.
     name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryUsername)'
+    value: registryUsername
   }
   {
     name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryPassword)'
+    value: registryPassword
   }
   {
     // The container listens here; without this App Service probes port 80 and the app looks dead
