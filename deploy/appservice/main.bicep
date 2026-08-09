@@ -62,15 +62,47 @@ var httpPoolSize = 4
 var backgroundPoolSize = 8
 
 // ============================================================================
-// Existing resources
+// Storage and secrets
 // ============================================================================
+//
+// Created here rather than expected to exist. They were separate because a customer migrating from
+// the Functions deployment already has both — but a first installation has neither, and asking
+// someone to run one template, wait, then run another is two chances to stop halfway.
+//
+// Existing resources of these names are left as they are: a deployment names them from the resource
+// group, so a migrating installation that already has them reconciles rather than duplicates.
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: storageAccountName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    supportsHttpsTrafficOnly: true
+    allowBlobPublicAccess: false
+  }
 }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-  name: storageAccountName
+// Access policies rather than RBAC, because the app's managed identity is granted through one
+// below, and a vault with enableRbacAuthorization set ignores those — it would deploy cleanly and
+// then be unable to read a single secret.
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: keyVaultName
+  location: location
+  properties: {
+    tenantId: subscription().tenantId
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    enableRbacAuthorization: false
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 7
+    accessPolicies: []
+  }
 }
 
 // Optional. orchex is deployed into the customer's own subscription, so every per-instance cost is

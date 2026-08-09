@@ -103,22 +103,21 @@ scheduler that can reach it, that must stay untouched while both deployments are
 
 ## Deploying from the portal
 
-Two buttons, in this order. The portal fetches each template from GitHub and draws the form itself —
-nothing to download, nothing to paste.
-
-**1. Storage and key vault** — what `main` expects to already exist.
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fappservice%2Farm%2Ftestenv.json)
-
-`yourUserObjectId` is your own object id, from Entra ID → Users → your account. Left empty the
-deployment still succeeds, but nobody can add secrets to the vault afterwards.
-
-**2. The application.**
+One button. The portal fetches the template from GitHub and draws the form itself.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fappservice%2Farm%2Fmain.json)
 
-`containerImage` is `orchex-api:develop` for a test deployment and `orchex-api:latest` for a real
-one. The registry token and its password come from the vendor, one per installation.
+It asks for five things, and three arrive filled in:
 
-Both buttons read from `main`, so a template still only on a branch will not appear there until it
-is merged.
+- **Prefix** — how the resources are named. Everything else follows it, with a suffix derived from
+  the resource group so the names are unique without anyone inventing them.
+- **Container Registry Host** and **Container Image** — prefilled. Use `orchex-api:latest` for a
+  real installation and `orchex-api:develop` to test an unreleased build.
+- **Registry Username** and **Registry Password** — the token issued for this installation, from the
+  vendor. One per installation, so it can be revoked without touching any other.
+
+Everything else is created: the storage account, the key vault, the plan and the app, its managed
+identity, and that identity's access to both the vault and its own configuration.
+
+Nothing is written into the vault here — the setup wizard does that itself, through the identity
+this grants.
