@@ -34,8 +34,10 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
-// RBAC rather than access policies, so the App Service's managed identity can be granted access
-// by main.bicep without reading and rewriting a policy list.
+// Access policies rather than RBAC, because main.bicep grants the app's managed identity through
+// an access policy and a vault with `enableRbacAuthorization` set ignores those — the deployment
+// succeeds and the app then cannot read a single secret. The customer's own vault, created by the
+// Functions deployment, works the same way, so matching it keeps the two environments comparable.
 resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: vaultName
   location: location
@@ -45,26 +47,20 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
       family: 'A'
       name: 'standard'
     }
-    enableRbacAuthorization: true
+    enableRbacAuthorization: false
     enableSoftDelete: true
     // Short, because a test vault gets torn down and recreated under the same name, and the
     // default retention makes the name unavailable for ninety days.
     softDeleteRetentionInDays: 7
-  }
-}
-
-var secretsOfficer = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  'b86a8fe4-44ce-4948-aee5-eccb2c155cd7'
-)
-
-resource operatorAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(operatorObjectId)) {
-  scope: vault
-  name: guid(vault.id, operatorObjectId, secretsOfficer)
-  properties: {
-    roleDefinitionId: secretsOfficer
-    principalId: operatorObjectId
-    principalType: 'User'
+    accessPolicies: empty(operatorObjectId) ? [] : [
+      {
+        tenantId: subscription().tenantId
+        objectId: operatorObjectId
+        permissions: {
+          secrets: ['get', 'list', 'set', 'delete']
+        }
+      }
+    ]
   }
 }
 
