@@ -11,14 +11,22 @@
 @description('Prefix for resource names. Must match the Functions deployment so the shared resources resolve.')
 param prefix string = 'orchex'
 
-@description('Azure region for all resources.')
-param location string = resourceGroup().location
+// Not a parameter: the portal asks for a region above the parameter list, so exposing it again
+// showed a raw template expression in a field it would not let anyone edit.
+var location = resourceGroup().location
 
-@description('Name of the App Service. Must be globally unique.')
-param webAppName string = '${prefix}-app'
+// Derived, not asked. Everything below follows the prefix the same way testenv.bicep does, so the
+// two deployments agree without anyone copying values between them — which is where the storage
+// account name used to come from, by hand, from the other deployment's outputs.
+// Storage accounts, key vaults and app service hostnames all live in a global namespace, so a
+// plain prefix collides with whoever took it first. uniqueString is derived from the resource group
+// id, which makes it stable across redeployments and identical in both templates — so the two agree
+// on every name without anyone copying a value between them.
+var suffix = uniqueString(resourceGroup().id)
+var webAppName = '${prefix}-${suffix}'
 
-@description('Registry hosting the image, e.g. orchexregistry.azurecr.io.')
-param containerRegistryHost string
+@description('Registry hosting the image.')
+param containerRegistryHost string = 'orchexregistry-hkana5hacfdncphk.azurecr.io'
 
 @description('Container image and tag within that registry.')
 param containerImage string = 'orchex-api:latest'
@@ -31,26 +39,23 @@ makes withholding updates possible without touching anything else. Managed ident
 credentials entirely, but the registry lives in the vendor's tenant and this app in the customer's,
 so cross-tenant RBAC does not reach it.
 ''')
-param registryUsernameSecret string = 'RegistryUsername'
-param registryPasswordSecret string = 'RegistryPassword'
+var registryUsernameSecret = 'RegistryUsername'
+var registryPasswordSecret = 'RegistryPassword'
 
-@description('Existing Key Vault holding the app registration secrets.')
-param keyVaultName string = '${prefix}-kv'
+var keyVaultName = take('${prefix}-${suffix}', 24)
 
-@description('Existing Storage Account.')
-param storageAccountName string
+var storageAccountName = toLower(take(replace('${prefix}${suffix}', '-', ''), 24))
 
-@description('Existing Application Insights instance. Leave empty to run without it.')
-param appInsightsName string = ''
+// Off unless someone edits this. It bills by the gigabyte ingested and that bill lands on the
+// customer, so it is not a question worth putting in front of every installation.
+var appInsightsName = ''
 
-@description('Licence validation endpoint.')
-param licenceApiUrl string = 'https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence'
+var licenceApiUrl = 'https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence'
 
-@description('Runspaces serving HTTP requests.')
-param httpPoolSize int = 4
+// Tuning, changeable afterwards as an app setting without redeploying — so not a question either.
+var httpPoolSize = 4
 
-@description('Runspaces serving background work — the ceiling on parallel activities.')
-param backgroundPoolSize int = 8
+var backgroundPoolSize = 8
 
 // ============================================================================
 // Existing resources

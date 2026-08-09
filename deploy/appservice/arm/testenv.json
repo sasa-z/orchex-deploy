@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "4536655207730501692"
+      "templateHash": "7046814158074869534"
     }
   },
   "parameters": {
@@ -16,31 +16,26 @@
         "description": "Prefix for resource names."
       }
     },
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Azure region."
-      }
-    },
     "operatorObjectId": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Object id of whoever runs the setup wizard, granted secret access on the vault."
+        "description": "Your own user object id, from Entra ID > Users > your account > Object ID. It grants you access to\nadd the registry credentials to the vault. Leaving it empty deploys, but then nobody can.\n"
       }
     }
   },
   "variables": {
-    "storageName": "[toLower(take(replace(format('{0}stor', parameters('prefix')), '-', ''), 24))]",
-    "vaultName": "[take(format('{0}-kv', parameters('prefix')), 24)]"
+    "location": "[resourceGroup().location]",
+    "suffix": "[uniqueString(resourceGroup().id)]",
+    "storageName": "[toLower(take(replace(format('{0}{1}', parameters('prefix'), variables('suffix')), '-', ''), 24))]",
+    "vaultName": "[take(format('{0}-{1}', parameters('prefix'), variables('suffix')), 24)]"
   },
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2023-01-01",
       "name": "[variables('storageName')]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "sku": {
         "name": "Standard_LRS"
       },
@@ -55,7 +50,7 @@
       "type": "Microsoft.KeyVault/vaults",
       "apiVersion": "2023-07-01",
       "name": "[variables('vaultName')]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "properties": {
         "tenantId": "[subscription().tenantId]",
         "sku": {

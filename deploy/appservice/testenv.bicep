@@ -11,14 +11,23 @@
 @description('Prefix for resource names.')
 param prefix string = 'orchextest'
 
-@description('Azure region.')
-param location string = resourceGroup().location
+// Not a parameter: the portal already asks for a region above the parameter list, and asking twice
+// produced a field showing a raw template expression that it would not let anyone edit.
+var location = resourceGroup().location
 
-@description('Object id of whoever runs the setup wizard, granted secret access on the vault.')
+@description('''
+Your own user object id, from Entra ID > Users > your account > Object ID. It grants you access to
+add the registry credentials to the vault. Leaving it empty deploys, but then nobody can.
+''')
 param operatorObjectId string = ''
 
-var storageName = toLower(take(replace('${prefix}stor', '-', ''), 24))
-var vaultName = take('${prefix}-kv', 24)
+// Storage accounts, key vaults and app service hostnames all live in a global namespace, so a
+// plain prefix collides with whoever took it first. uniqueString is derived from the resource group
+// id, which makes it stable across redeployments and identical in both templates — so the two agree
+// on every name without anyone copying a value between them.
+var suffix = uniqueString(resourceGroup().id)
+var storageName = toLower(take(replace('${prefix}${suffix}', '-', ''), 24))
+var vaultName = take('${prefix}-${suffix}', 24)
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageName

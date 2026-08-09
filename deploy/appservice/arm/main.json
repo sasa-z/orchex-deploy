@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "15248630630895977121"
+      "templateHash": "16369093459014701869"
     }
   },
   "parameters": {
@@ -16,24 +16,11 @@
         "description": "Prefix for resource names. Must match the Functions deployment so the shared resources resolve."
       }
     },
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Azure region for all resources."
-      }
-    },
-    "webAppName": {
-      "type": "string",
-      "defaultValue": "[format('{0}-app', parameters('prefix'))]",
-      "metadata": {
-        "description": "Name of the App Service. Must be globally unique."
-      }
-    },
     "containerRegistryHost": {
       "type": "string",
+      "defaultValue": "orchexregistry-hkana5hacfdncphk.azurecr.io",
       "metadata": {
-        "description": "Registry hosting the image, e.g. orchexregistry.azurecr.io."
+        "description": "Registry hosting the image."
       }
     },
     "containerImage": {
@@ -42,66 +29,27 @@
       "metadata": {
         "description": "Container image and tag within that registry."
       }
-    },
-    "registryUsernameSecret": {
-      "type": "string",
-      "defaultValue": "RegistryUsername",
-      "metadata": {
-        "description": "Key Vault secret names holding a registry token scoped to this customer.\n\nA token per customer rather than one shared credential: it can be revoked on its own, which is what\nmakes withholding updates possible without touching anything else. Managed identity would avoid\ncredentials entirely, but the registry lives in the vendor's tenant and this app in the customer's,\nso cross-tenant RBAC does not reach it.\n"
-      }
-    },
-    "registryPasswordSecret": {
-      "type": "string",
-      "defaultValue": "RegistryPassword"
-    },
-    "keyVaultName": {
-      "type": "string",
-      "defaultValue": "[format('{0}-kv', parameters('prefix'))]",
-      "metadata": {
-        "description": "Existing Key Vault holding the app registration secrets."
-      }
-    },
-    "storageAccountName": {
-      "type": "string",
-      "metadata": {
-        "description": "Existing Storage Account."
-      }
-    },
-    "appInsightsName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Existing Application Insights instance. Leave empty to run without it."
-      }
-    },
-    "licenceApiUrl": {
-      "type": "string",
-      "defaultValue": "https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence",
-      "metadata": {
-        "description": "Licence validation endpoint."
-      }
-    },
-    "httpPoolSize": {
-      "type": "int",
-      "defaultValue": 4,
-      "metadata": {
-        "description": "Runspaces serving HTTP requests."
-      }
-    },
-    "backgroundPoolSize": {
-      "type": "int",
-      "defaultValue": 8,
-      "metadata": {
-        "description": "Runspaces serving background work — the ceiling on parallel activities."
-      }
     }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "suffix": "[uniqueString(resourceGroup().id)]",
+    "webAppName": "[format('{0}-{1}', parameters('prefix'), variables('suffix'))]",
+    "registryUsernameSecret": "RegistryUsername",
+    "registryPasswordSecret": "RegistryPassword",
+    "keyVaultName": "[take(format('{0}-{1}', parameters('prefix'), variables('suffix')), 24)]",
+    "storageAccountName": "[toLower(take(replace(format('{0}{1}', parameters('prefix'), variables('suffix')), '-', ''), 24))]",
+    "appInsightsName": "",
+    "licenceApiUrl": "https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence",
+    "httpPoolSize": 4,
+    "backgroundPoolSize": 8
   },
   "resources": [
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2023-01-01",
-      "name": "[format('{0}-plan', parameters('webAppName'))]",
-      "location": "[parameters('location')]",
+      "name": "[format('{0}-plan', variables('webAppName'))]",
+      "location": "[variables('location')]",
       "kind": "linux",
       "sku": {
         "name": "B2",
@@ -114,36 +62,36 @@
     {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2023-01-01",
-      "name": "[parameters('webAppName')]",
-      "location": "[parameters('location')]",
+      "name": "[variables('webAppName')]",
+      "location": "[variables('location')]",
       "kind": "app,linux,container",
       "identity": {
         "type": "SystemAssigned"
       },
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', parameters('webAppName')))]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', variables('webAppName')))]",
         "httpsOnly": true,
         "siteConfig": {
           "linuxFxVersion": "[format('DOCKER|{0}/{1}', parameters('containerRegistryHost'), parameters('containerImage'))]",
           "alwaysOn": true,
           "http20Enabled": true,
           "healthCheckPath": "/health",
-          "appSettings": "[concat(createArray(createObject('name', 'DOCKER_REGISTRY_SERVER_URL', 'value', format('https://{0}', parameters('containerRegistryHost'))), createObject('name', 'DOCKER_REGISTRY_SERVER_USERNAME', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', parameters('keyVaultName'), parameters('registryUsernameSecret'))), createObject('name', 'DOCKER_REGISTRY_SERVER_PASSWORD', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', parameters('keyVaultName'), parameters('registryPasswordSecret'))), createObject('name', 'WEBSITES_PORT', 'value', '8080'), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'ORCHEX_HTTP_POOL_SIZE', 'value', string(parameters('httpPoolSize'))), createObject('name', 'ORCHEX_BG_POOL_SIZE', 'value', string(parameters('backgroundPoolSize'))), createObject('name', 'ORCHEX_SCHEDULER_ENABLED', 'value', 'false'), createObject('name', 'TenantId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=TenantId)', parameters('keyVaultName'))), createObject('name', 'ApplicationId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', parameters('keyVaultName'))), createObject('name', 'ApplicationSecret', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationSecret)', parameters('keyVaultName'))), createObject('name', 'RefreshToken', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=RefreshToken)', parameters('keyVaultName'))), createObject('name', 'LicenceKey', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=LicenceKey)', parameters('keyVaultName'))), createObject('name', 'StorageConnectionString', 'value', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value, environment().suffixes.storage)), createObject('name', 'KeyVaultName', 'value', parameters('keyVaultName')), createObject('name', 'LicenceApiUrl', 'value', parameters('licenceApiUrl')), createObject('name', 'McpClientId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', parameters('keyVaultName'))), createObject('name', 'PublicClientApp', 'value', 'true'), createObject('name', 'SetupComplete', 'value', 'true'), createObject('name', 'CAMPHeartbeatDisabled', 'value', 'true')), if(empty(parameters('appInsightsName')), createArray(), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').ConnectionString))))]"
+          "appSettings": "[concat(createArray(createObject('name', 'DOCKER_REGISTRY_SERVER_URL', 'value', format('https://{0}', parameters('containerRegistryHost'))), createObject('name', 'DOCKER_REGISTRY_SERVER_USERNAME', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', variables('keyVaultName'), variables('registryUsernameSecret'))), createObject('name', 'DOCKER_REGISTRY_SERVER_PASSWORD', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', variables('keyVaultName'), variables('registryPasswordSecret'))), createObject('name', 'WEBSITES_PORT', 'value', '8080'), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'ORCHEX_HTTP_POOL_SIZE', 'value', string(variables('httpPoolSize'))), createObject('name', 'ORCHEX_BG_POOL_SIZE', 'value', string(variables('backgroundPoolSize'))), createObject('name', 'ORCHEX_SCHEDULER_ENABLED', 'value', 'false'), createObject('name', 'TenantId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=TenantId)', variables('keyVaultName'))), createObject('name', 'ApplicationId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', variables('keyVaultName'))), createObject('name', 'ApplicationSecret', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationSecret)', variables('keyVaultName'))), createObject('name', 'RefreshToken', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=RefreshToken)', variables('keyVaultName'))), createObject('name', 'LicenceKey', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=LicenceKey)', variables('keyVaultName'))), createObject('name', 'StorageConnectionString', 'value', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', variables('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-01-01').keys[0].value, environment().suffixes.storage)), createObject('name', 'KeyVaultName', 'value', variables('keyVaultName')), createObject('name', 'LicenceApiUrl', 'value', variables('licenceApiUrl')), createObject('name', 'McpClientId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', variables('keyVaultName'))), createObject('name', 'PublicClientApp', 'value', 'true'), createObject('name', 'SetupComplete', 'value', 'true'), createObject('name', 'CAMPHeartbeatDisabled', 'value', 'true')), if(empty(variables('appInsightsName')), createArray(), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString))))]"
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', parameters('webAppName')))]"
+        "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', variables('webAppName')))]"
       ]
     },
     {
       "type": "Microsoft.KeyVault/vaults/accessPolicies",
       "apiVersion": "2023-07-01",
-      "name": "[format('{0}/{1}', parameters('keyVaultName'), 'add')]",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'add')]",
       "properties": {
         "accessPolicies": [
           {
             "tenantId": "[subscription().tenantId]",
-            "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2023-01-01', 'full').identity.principalId]",
+            "objectId": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-01-01', 'full').identity.principalId]",
             "permissions": {
               "secrets": [
                 "get",
@@ -155,36 +103,36 @@
         ]
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
       ]
     },
     {
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]",
-      "name": "[guid(resourceId('Microsoft.Web/sites', parameters('webAppName')), 'Contributor', 'mcp-easyauth')]",
+      "scope": "[resourceId('Microsoft.Web/sites', variables('webAppName'))]",
+      "name": "[guid(resourceId('Microsoft.Web/sites', variables('webAppName')), 'Contributor', 'mcp-easyauth')]",
       "properties": {
-        "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2023-01-01', 'full').identity.principalId]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-01-01', 'full').identity.principalId]",
         "principalType": "ServicePrincipal",
         "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
       ]
     }
   ],
   "outputs": {
     "webAppName": {
       "type": "string",
-      "value": "[parameters('webAppName')]"
+      "value": "[variables('webAppName')]"
     },
     "webAppUrl": {
       "type": "string",
-      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2023-01-01').defaultHostName)]"
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-01-01').defaultHostName)]"
     },
     "principalId": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2023-01-01', 'full').identity.principalId]"
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-01-01', 'full').identity.principalId]"
     }
   }
 }
