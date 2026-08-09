@@ -143,6 +143,22 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!
 // because the resource is still being created.
 var baseAppSettings = [
   // ── Container ────────────────────────────────────────────────────────────
+  // The site's own ARM coordinates. Setup writes this site's authsettingsV2 through its managed
+  // identity and has to address itself to do it — and a Linux container is not given the WEBSITE_*
+  // variables a Windows host would use to work them out, which surfaces much later as an unparseable
+  // address rather than as a missing value.
+  {
+    name: 'ORCHEX_SUBSCRIPTION_ID'
+    value: subscription().subscriptionId
+  }
+  {
+    name: 'ORCHEX_RESOURCE_GROUP'
+    value: resourceGroup().name
+  }
+  {
+    name: 'ORCHEX_SITE_NAME'
+    value: webAppName
+  }
   {
     name: 'DOCKER_REGISTRY_SERVER_URL'
     value: 'https://${containerRegistryHost}'
