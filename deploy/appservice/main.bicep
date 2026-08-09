@@ -32,15 +32,19 @@ param containerRegistryHost string = 'orchexregistry-hkana5hacfdncphk.azurecr.io
 param containerImage string = 'orchex-api:latest'
 
 @description('''
-Key Vault secret names holding a registry token scoped to this customer.
+Registry token issued for this customer, from the vendor. A token per customer rather than one
+shared credential, so it can be revoked on its own without touching any other installation.
 
-A token per customer rather than one shared credential: it can be revoked on its own, which is what
-makes withholding updates possible without touching anything else. Managed identity would avoid
-credentials entirely, but the registry lives in the vendor's tenant and this app in the customer's,
-so cross-tenant RBAC does not reach it.
+Given here rather than through Key Vault: App Service reads these from its own configuration either
+way, and a vault reference only added a manual step where someone had to type them in first.
+Managed identity would avoid credentials entirely, but the registry is in the vendor's tenant and
+this app in the customer's, and cross-tenant RBAC does not reach across that.
 ''')
-var registryUsernameSecret = 'RegistryUsername'
-var registryPasswordSecret = 'RegistryPassword'
+param registryUsername string
+
+@description('Password for that token. Readable only when it was generated.')
+@secure()
+param registryPassword string
 
 var keyVaultName = take('${prefix}-${suffix}', 24)
 
@@ -93,11 +97,11 @@ var baseAppSettings = [
   }
   {
     name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=${registryUsernameSecret})'
+    value: registryUsername
   }
   {
     name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=${registryPasswordSecret})'
+    value: registryPassword
   }
   {
     // The container listens here; without this App Service probes port 80 and the app looks dead

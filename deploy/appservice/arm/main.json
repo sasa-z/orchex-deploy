@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "16369093459014701869"
+      "templateHash": "10342216445019620451"
     }
   },
   "parameters": {
@@ -29,14 +29,24 @@
       "metadata": {
         "description": "Container image and tag within that registry."
       }
+    },
+    "registryUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Registry token issued for this customer, from the vendor. A token per customer rather than one\nshared credential, so it can be revoked on its own without touching any other installation.\n\nGiven here rather than through Key Vault: App Service reads these from its own configuration either\nway, and a vault reference only added a manual step where someone had to type them in first.\nManaged identity would avoid credentials entirely, but the registry is in the vendor's tenant and\nthis app in the customer's, and cross-tenant RBAC does not reach across that.\n"
+      }
+    },
+    "registryPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for that token. Readable only when it was generated."
+      }
     }
   },
   "variables": {
     "location": "[resourceGroup().location]",
     "suffix": "[uniqueString(resourceGroup().id)]",
     "webAppName": "[format('{0}-{1}', parameters('prefix'), variables('suffix'))]",
-    "registryUsernameSecret": "RegistryUsername",
-    "registryPasswordSecret": "RegistryPassword",
     "keyVaultName": "[take(format('{0}-{1}', parameters('prefix'), variables('suffix')), 24)]",
     "storageAccountName": "[toLower(take(replace(format('{0}{1}', parameters('prefix'), variables('suffix')), '-', ''), 24))]",
     "appInsightsName": "",
@@ -76,7 +86,7 @@
           "alwaysOn": true,
           "http20Enabled": true,
           "healthCheckPath": "/health",
-          "appSettings": "[concat(createArray(createObject('name', 'DOCKER_REGISTRY_SERVER_URL', 'value', format('https://{0}', parameters('containerRegistryHost'))), createObject('name', 'DOCKER_REGISTRY_SERVER_USERNAME', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', variables('keyVaultName'), variables('registryUsernameSecret'))), createObject('name', 'DOCKER_REGISTRY_SERVER_PASSWORD', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', variables('keyVaultName'), variables('registryPasswordSecret'))), createObject('name', 'WEBSITES_PORT', 'value', '8080'), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'ORCHEX_HTTP_POOL_SIZE', 'value', string(variables('httpPoolSize'))), createObject('name', 'ORCHEX_BG_POOL_SIZE', 'value', string(variables('backgroundPoolSize'))), createObject('name', 'ORCHEX_SCHEDULER_ENABLED', 'value', 'false'), createObject('name', 'TenantId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=TenantId)', variables('keyVaultName'))), createObject('name', 'ApplicationId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', variables('keyVaultName'))), createObject('name', 'ApplicationSecret', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationSecret)', variables('keyVaultName'))), createObject('name', 'RefreshToken', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=RefreshToken)', variables('keyVaultName'))), createObject('name', 'LicenceKey', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=LicenceKey)', variables('keyVaultName'))), createObject('name', 'StorageConnectionString', 'value', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', variables('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-01-01').keys[0].value, environment().suffixes.storage)), createObject('name', 'KeyVaultName', 'value', variables('keyVaultName')), createObject('name', 'LicenceApiUrl', 'value', variables('licenceApiUrl')), createObject('name', 'McpClientId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', variables('keyVaultName'))), createObject('name', 'PublicClientApp', 'value', 'true'), createObject('name', 'SetupComplete', 'value', 'true'), createObject('name', 'CAMPHeartbeatDisabled', 'value', 'true')), if(empty(variables('appInsightsName')), createArray(), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString))))]"
+          "appSettings": "[concat(createArray(createObject('name', 'DOCKER_REGISTRY_SERVER_URL', 'value', format('https://{0}', parameters('containerRegistryHost'))), createObject('name', 'DOCKER_REGISTRY_SERVER_USERNAME', 'value', parameters('registryUsername')), createObject('name', 'DOCKER_REGISTRY_SERVER_PASSWORD', 'value', parameters('registryPassword')), createObject('name', 'WEBSITES_PORT', 'value', '8080'), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'ORCHEX_HTTP_POOL_SIZE', 'value', string(variables('httpPoolSize'))), createObject('name', 'ORCHEX_BG_POOL_SIZE', 'value', string(variables('backgroundPoolSize'))), createObject('name', 'ORCHEX_SCHEDULER_ENABLED', 'value', 'false'), createObject('name', 'TenantId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=TenantId)', variables('keyVaultName'))), createObject('name', 'ApplicationId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', variables('keyVaultName'))), createObject('name', 'ApplicationSecret', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationSecret)', variables('keyVaultName'))), createObject('name', 'RefreshToken', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=RefreshToken)', variables('keyVaultName'))), createObject('name', 'LicenceKey', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=LicenceKey)', variables('keyVaultName'))), createObject('name', 'StorageConnectionString', 'value', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', variables('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-01-01').keys[0].value, environment().suffixes.storage)), createObject('name', 'KeyVaultName', 'value', variables('keyVaultName')), createObject('name', 'LicenceApiUrl', 'value', variables('licenceApiUrl')), createObject('name', 'McpClientId', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=ApplicationId)', variables('keyVaultName'))), createObject('name', 'PublicClientApp', 'value', 'true'), createObject('name', 'SetupComplete', 'value', 'true'), createObject('name', 'CAMPHeartbeatDisabled', 'value', 'true')), if(empty(variables('appInsightsName')), createArray(), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString))))]"
         }
       },
       "dependsOn": [
