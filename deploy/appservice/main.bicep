@@ -29,8 +29,8 @@ param keyVaultName string = '${prefix}-kv'
 @description('Existing Storage Account.')
 param storageAccountName string
 
-@description('Existing Application Insights instance.')
-param appInsightsName string = '${prefix}-insights'
+@description('Existing Application Insights instance. Leave empty to run without it.')
+param appInsightsName string = ''
 
 @description('Licence validation endpoint.')
 param licenceApiUrl string = 'https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence'
@@ -53,9 +53,126 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing 
   name: storageAccountName
 }
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+// Optional. orchex is deployed into the customer's own subscription, so every per-instance cost is
+// theirs and multiplies across installations — and Application Insights bills by the gigabyte
+// ingested, which a verbose PowerShell workload reaches quickly. The runtime writes rotating files
+// by default and reads them back through the portal, so a deployment without this is fully
+// diagnosable; this is for operators who want KQL and alerting and accept the bill.
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(appInsightsName)) {
   name: appInsightsName
 }
+
+// ============================================================================
+// App settings
+// ============================================================================
+
+// Built as a variable rather than inline so the optional Application Insights entry is a concat.
+// Reading the site's own settings back to merge into them compiles, and then fails at deploy time
+// because the resource is still being created.
+var baseAppSettings = [
+  // ── Container ────────────────────────────────────────────────────────────
+  {
+    name: 'DOCKER_REGISTRY_SERVER_URL'
+    value: containerRegistryUrl
+  }
+  {
+    // The container listens here; without this App Service probes port 80 and the app looks dead
+    // however healthy it is.
+    name: 'WEBSITES_PORT'
+    value: '8080'
+  }
+  {
+    // Otherwise App Service mounts persistent storage over /home, which shadows nothing here today
+    // but makes the mount a silent hazard for anything later placed under it.
+    name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+    value: 'false'
+  }
+
+  // ── Runtime sizing ───────────────────────────────────────────────────────
+  // The background pool is the real ceiling on parallel activities: every dispatched operation
+  // holds one for its duration. Sized against what Functions ran — 10 concurrent activities in a
+  // single worker.
+  {
+    name: 'ORCHEX_HTTP_POOL_SIZE'
+    value: string(httpPoolSize)
+  }
+  {
+    name: 'ORCHEX_BG_POOL_SIZE'
+    value: string(backgroundPoolSize)
+  }
+  {
+    // Off until this deployment is the one that owns scheduled work. Two hosts both firing timers
+    // run every nightly sweep twice.
+    name: 'ORCHEX_SCHEDULER_ENABLED'
+    value: 'false'
+  }
+
+  // ── Application ──────────────────────────────────────────────────────────
+  // Spelling matters: environment variable names are case-sensitive on Linux and orchex-api reads
+  // exactly these. A mismatch does not fail loudly — the tenant check reads "if ($mspTenantId)", so
+  // an empty read skips it and admits principals from other tenants.
+  {
+    name: 'TenantId'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=TenantId)'
+  }
+  {
+    name: 'ApplicationId'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
+  }
+  {
+    name: 'ApplicationSecret'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationSecret)'
+  }
+  {
+    name: 'RefreshToken'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RefreshToken)'
+  }
+  {
+    name: 'LicenceKey'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=LicenceKey)'
+  }
+  {
+    // Shared with the Functions deployment, and where orchestration state is written too.
+    name: 'StorageConnectionString'
+    value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+  }
+  {
+    name: 'KeyVaultName'
+    value: keyVaultName
+  }
+  {
+    name: 'LicenceApiUrl'
+    value: licenceApiUrl
+  }
+  {
+    // Same app registration; MCP tokens are validated against it.
+    name: 'McpClientId'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
+  }
+  {
+    name: 'PublicClientApp'
+    value: 'true'
+  }
+  {
+    name: 'SetupComplete'
+    value: 'true'
+  }
+  {
+    // The heartbeat chain relit itself so scheduled work survived the host being evicted overnight.
+    // Nothing evicts this one. Also set in the image; repeated here so the reason is visible to
+    // anyone reading the deployment.
+    name: 'CAMPHeartbeatDisabled'
+    value: 'true'
+  }
+]
+
+// Absent unless an instance was named, and the runtime then logs to its rotating files only.
+var telemetryAppSettings = empty(appInsightsName) ? [] : [
+  {
+    name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+    value: appInsights.properties.ConnectionString
+  }
+]
 
 // ============================================================================
 // Plan and app
@@ -93,108 +210,7 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
       http20Enabled: true
       // Answered without touching PowerShell, so it stays truthful while the pool is saturated.
       healthCheckPath: '/health'
-      appSettings: [
-        // ── Container ────────────────────────────────────────────────────────
-        {
-          name: 'DOCKER_REGISTRY_SERVER_URL'
-          value: containerRegistryUrl
-        }
-        {
-          // The container listens here; without this App Service probes port 80 and the app looks
-          // dead however healthy it is.
-          name: 'WEBSITES_PORT'
-          value: '8080'
-        }
-        {
-          // Otherwise App Service mounts persistent storage over /home, which would shadow nothing
-          // here today but makes the mount a silent hazard for anything later placed under it.
-          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
-          value: 'false'
-        }
-
-        // ── Runtime sizing ───────────────────────────────────────────────────
-        // Background pool is the real ceiling on parallel activities: every dispatched operation
-        // holds one for its duration. Sized against what Functions ran, which was 10 concurrent
-        // activities in a single worker.
-        {
-          name: 'ORCHEX_HTTP_POOL_SIZE'
-          value: string(httpPoolSize)
-        }
-        {
-          name: 'ORCHEX_BG_POOL_SIZE'
-          value: string(backgroundPoolSize)
-        }
-        {
-          // Off until this deployment is the one that owns scheduled work. Two hosts both firing
-          // timers would run every nightly sweep twice.
-          name: 'ORCHEX_SCHEDULER_ENABLED'
-          value: 'false'
-        }
-
-        // ── Application ──────────────────────────────────────────────────────
-        // Spelling matters: environment variable names are case-sensitive on Linux, and orchex-api
-        // reads exactly these. A mismatch does not fail loudly — the tenant check reads
-        // "if ($mspTenantId)", so an empty read skips it and admits foreign tenants.
-        {
-          name: 'TenantId'
-          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=TenantId)'
-        }
-        {
-          name: 'ApplicationId'
-          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
-        }
-        {
-          name: 'ApplicationSecret'
-          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationSecret)'
-        }
-        {
-          name: 'RefreshToken'
-          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RefreshToken)'
-        }
-        {
-          name: 'LicenceKey'
-          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=LicenceKey)'
-        }
-        {
-          // Shared with the Functions deployment, and where orchestration state is written too.
-          name: 'StorageConnectionString'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
-        }
-        {
-          name: 'KeyVaultName'
-          value: keyVaultName
-        }
-        {
-          name: 'LicenceApiUrl'
-          value: licenceApiUrl
-        }
-        {
-          // Same app registration; MCP tokens are validated against it.
-          name: 'McpClientId'
-          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
-        }
-        {
-          name: 'PublicClientApp'
-          value: 'true'
-        }
-        {
-          name: 'SetupComplete'
-          value: 'true'
-        }
-        {
-          // The heartbeat chain relit itself so scheduled work survived the host being evicted
-          // overnight. Nothing evicts this one. Also set in the image; repeated here so the reason
-          // is visible to anyone reading the deployment.
-          name: 'CAMPHeartbeatDisabled'
-          value: 'true'
-        }
-
-        // ── Telemetry ────────────────────────────────────────────────────────
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-      ]
+      appSettings: concat(baseAppSettings, telemetryAppSettings)
     }
   }
 }
