@@ -105,6 +105,26 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
+// Written here rather than left in the site's configuration. An app setting's value is readable by
+// anyone with Contributor on the app, and a registry token is the one credential in this deployment
+// that belongs to the vendor rather than to the customer — a reference costs nothing and keeps it
+// out of a screen people open for unrelated reasons.
+resource registryUsernameSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'RegistryUsername'
+  properties: {
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryUsername)'
+  }
+}
+
+resource registryPasswordSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'RegistryPassword'
+  properties: {
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryPassword)'
+  }
+}
+
 // Optional. orchex is deployed into the customer's own subscription, so every per-instance cost is
 // theirs and multiplies across installations — and Application Insights bills by the gigabyte
 // ingested, which a verbose PowerShell workload reaches quickly. The runtime writes rotating files
@@ -129,11 +149,11 @@ var baseAppSettings = [
   }
   {
     name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-    value: registryUsername
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryUsername)'
   }
   {
     name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-    value: registryPassword
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryPassword)'
   }
   {
     // The container listens here; without this App Service probes port 80 and the app looks dead
