@@ -17,11 +17,22 @@ param location string = resourceGroup().location
 @description('Name of the App Service. Must be globally unique.')
 param webAppName string = '${prefix}-app'
 
-@description('Container image to run, including tag.')
-param containerImage string = 'ghcr.io/sasa-z/orchex-api:latest'
+@description('Registry hosting the image, e.g. orchexregistry.azurecr.io.')
+param containerRegistryHost string
 
-@description('Registry the image is pulled from. Public GHCR needs no credentials.')
-param containerRegistryUrl string = 'https://ghcr.io'
+@description('Container image and tag within that registry.')
+param containerImage string = 'orchex-api:latest'
+
+@description('''
+Key Vault secret names holding a registry token scoped to this customer.
+
+A token per customer rather than one shared credential: it can be revoked on its own, which is what
+makes withholding updates possible without touching anything else. Managed identity would avoid
+credentials entirely, but the registry lives in the vendor's tenant and this app in the customer's,
+so cross-tenant RBAC does not reach it.
+''')
+param registryUsernameSecret string = 'RegistryUsername'
+param registryPasswordSecret string = 'RegistryPassword'
 
 @description('Existing Key Vault holding the app registration secrets.')
 param keyVaultName string = '${prefix}-kv'
@@ -73,7 +84,15 @@ var baseAppSettings = [
   // ── Container ────────────────────────────────────────────────────────────
   {
     name: 'DOCKER_REGISTRY_SERVER_URL'
-    value: containerRegistryUrl
+    value: 'https://${containerRegistryHost}'
+  }
+  {
+    name: 'DOCKER_REGISTRY_SERVER_USERNAME'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=${registryUsernameSecret})'
+  }
+  {
+    name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
+    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=${registryPasswordSecret})'
   }
   {
     // The container listens here; without this App Service probes port 80 and the app looks dead
@@ -205,7 +224,7 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
     serverFarmId: appServicePlan.id
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'DOCKER|${containerImage}'
+      linuxFxVersion: 'DOCKER|${containerRegistryHost}/${containerImage}'
       alwaysOn: true
       http20Enabled: true
       // Answered without touching PowerShell, so it stays truthful while the pool is saturated.
