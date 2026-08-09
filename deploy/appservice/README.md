@@ -99,3 +99,30 @@ production is working through, and leaves it removed if the recreate fails.
 
 Read-only checks against customer tenants are safe. It is the CPV consent path specifically, and the
 scheduler that can reach it, that must stay untouched while both deployments are alive.
+
+
+## Deploying from the portal
+
+Two buttons, in this order. The portal fetches each template from GitHub and draws the form itself —
+nothing to download, nothing to paste.
+
+**1. Storage and key vault** — what `main` expects to already exist.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fappservice%2Farm%2Ftestenv.json)
+
+`operatorObjectId` is your own object id, from Entra ID → Users → your account. Left empty the
+deployment still succeeds, but nobody can add secrets to the vault afterwards.
+
+**2. Add the registry credentials** to that vault, as `RegistryUsername` and `RegistryPassword`.
+Generate the password in your own subscription under Container registry → Tokens → `pull-test` →
+Generate password; it is readable only at that moment. The app cannot start without these.
+
+**3. The application.**
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fappservice%2Farm%2Fmain.json)
+
+`containerImage` is `orchex-api:develop` for a test deployment and `orchex-api:latest` for a real
+one. `storageAccountName` comes from the first deployment's outputs.
+
+Both buttons read from `main`, so a template still only on a branch will not appear there until it
+is merged.
