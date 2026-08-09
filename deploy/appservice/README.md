@@ -86,3 +86,16 @@ should not be left open:
 az webapp config access-restriction add -g orchex-test -n <app> \
   --rule-name operator --action Allow --ip-address <your-ip>/32 --priority 100
 ```
+
+### Do not run CPV from the test deployment
+
+Both deployments authenticate as the same Orchex-SAM application, and Partner Center consent is
+recorded against the application rather than against whoever asked for it. So the consent the
+customer's deployment relies on already covers the test one — there is nothing to grant.
+
+Running it anyway is not a no-op. `Set-CAMPCPVConsent` deletes the existing `applicationconsents`
+entry before creating the replacement, so a CPV run from the test deployment removes the consent
+production is working through, and leaves it removed if the recreate fails.
+
+Read-only checks against customer tenants are safe. It is the CPV consent path specifically, and the
+scheduler that can reach it, that must stay untouched while both deployments are alive.
