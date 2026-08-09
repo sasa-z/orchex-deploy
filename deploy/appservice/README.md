@@ -50,7 +50,7 @@ az group create -n orchex-test -l westeurope
 
 # Storage and key vault, which main.bicep expects to exist already.
 az deployment group create -g orchex-test -f deploy/appservice/testenv.bicep \
-  -p operatorObjectId=$(az ad signed-in-user show --query id -o tsv)
+  -p yourUserObjectId=$(az ad signed-in-user show --query id -o tsv)
 
 # Registry credentials for this deployment. A token password is readable only when generated.
 az acr token credential generate --registry orchexregistry --name pull-test \
@@ -110,7 +110,7 @@ nothing to download, nothing to paste.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsasa-z%2Forchex-deploy%2Fmain%2Fdeploy%2Fappservice%2Farm%2Ftestenv.json)
 
-`operatorObjectId` is your own object id, from Entra ID → Users → your account. Left empty the
+`yourUserObjectId` is your own object id, from Entra ID → Users → your account. Left empty the
 deployment still succeeds, but nobody can add secrets to the vault afterwards.
 
 **2. Add the registry credentials** to that vault, as `RegistryUsername` and `RegistryPassword`.

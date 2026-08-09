@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "7046814158074869534"
+      "templateHash": "4922949895688901763"
     }
   },
   "parameters": {
@@ -16,7 +16,7 @@
         "description": "Prefix for resource names."
       }
     },
-    "operatorObjectId": {
+    "yourUserObjectId": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
@@ -60,7 +60,7 @@
         "enableRbacAuthorization": false,
         "enableSoftDelete": true,
         "softDeleteRetentionInDays": 7,
-        "accessPolicies": "[if(empty(parameters('operatorObjectId')), createArray(), createArray(createObject('tenantId', subscription().tenantId, 'objectId', parameters('operatorObjectId'), 'permissions', createObject('secrets', createArray('get', 'list', 'set', 'delete')))))]"
+        "accessPolicies": "[if(empty(parameters('yourUserObjectId')), createArray(), createArray(createObject('tenantId', subscription().tenantId, 'objectId', parameters('yourUserObjectId'), 'permissions', createObject('secrets', createArray('get', 'list', 'set', 'delete')))))]"
       }
     }
   ],

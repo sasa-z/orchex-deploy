@@ -19,7 +19,7 @@ var location = resourceGroup().location
 Your own user object id, from Entra ID > Users > your account > Object ID. It grants you access to
 add the registry credentials to the vault. Leaving it empty deploys, but then nobody can.
 ''')
-param operatorObjectId string = ''
+param yourUserObjectId string = ''
 
 // Storage accounts, key vaults and app service hostnames all live in a global namespace, so a
 // plain prefix collides with whoever took it first. uniqueString is derived from the resource group
@@ -61,10 +61,10 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     // Short, because a test vault gets torn down and recreated under the same name, and the
     // default retention makes the name unavailable for ninety days.
     softDeleteRetentionInDays: 7
-    accessPolicies: empty(operatorObjectId) ? [] : [
+    accessPolicies: empty(yourUserObjectId) ? [] : [
       {
         tenantId: subscription().tenantId
-        objectId: operatorObjectId
+        objectId: yourUserObjectId
         permissions: {
           secrets: ['get', 'list', 'set', 'delete']
         }
