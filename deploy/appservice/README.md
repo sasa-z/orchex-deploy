@@ -128,7 +128,18 @@ The symptom is `ImagePullUnauthorizedFailure` in the container log, and the site
 
 Note first that `DOCKER_REGISTRY_SERVER_PASSWORD` always reads back as null through the app settings
 API and the portal, however it was set — so an empty-looking value proves nothing, and is not
-evidence the password is missing.
+evidence the password is missing. There is nowhere to read it back from: the site's configuration is
+the only place it is kept, deliberately, since keeping a second copy in the vault would put the same
+secret in two places without protecting either.
+
+Test the credential itself rather than looking for the value:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -u "pull-<customer>:<password>" \
+  "https://<registry>.azurecr.io/oauth2/token?service=<registry>.azurecr.io&scope=repository:orchex-api:pull"
+```
+
+200 means the credential is good and the fault is elsewhere; 401 means it is not.
 
 The reliable way to correct it is to set it directly rather than redeploy:
 

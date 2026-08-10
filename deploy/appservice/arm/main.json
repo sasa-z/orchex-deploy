@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "13850439233077328108"
+      "templateHash": "17805533361726467920"
     }
   },
   "parameters": {
@@ -86,28 +86,6 @@
         "softDeleteRetentionInDays": 7,
         "accessPolicies": []
       }
-    },
-    {
-      "type": "Microsoft.KeyVault/vaults/secrets",
-      "apiVersion": "2023-07-01",
-      "name": "[format('{0}/{1}', variables('keyVaultName'), 'RegistryUsername')]",
-      "properties": {
-        "value": "[parameters('registryUsername')]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.KeyVault/vaults/secrets",
-      "apiVersion": "2023-07-01",
-      "name": "[format('{0}/{1}', variables('keyVaultName'), 'RegistryPassword')]",
-      "properties": {
-        "value": "[parameters('registryPassword')]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
-      ]
     },
     {
       "type": "Microsoft.Web/serverfarms",

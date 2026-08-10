@@ -105,26 +105,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-// Kept here as well as in the site's configuration, so the value survives somewhere the customer
-// does not open for unrelated reasons — and so a rotation has one place to be written. The site
-// itself cannot use a reference for these two: the image is pulled before the site runs, which is
-// before references resolve.
-resource registryUsernameSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  parent: keyVault
-  name: 'RegistryUsername'
-  properties: {
-    value: registryUsername
-  }
-}
-
-resource registryPasswordSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  parent: keyVault
-  name: 'RegistryPassword'
-  properties: {
-    value: registryPassword
-  }
-}
-
 // Optional. orchex is deployed into the customer's own subscription, so every per-instance cost is
 // theirs and multiplies across installations — and Application Insights bills by the gigabyte
 // ingested, which a verbose PowerShell workload reaches quickly. The runtime writes rotating files
