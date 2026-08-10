@@ -43,6 +43,10 @@ this app in the customer's, and cross-tenant RBAC does not reach across that.
 param registryUsername string
 
 @description('Password for that token. Readable only when it was generated.')
+// Rejected when empty rather than accepted. A blank password deploys perfectly happily and produces
+// a site that cannot pull its own image — which then fails minutes later as an authorization error,
+// pointing at the registry rather than at the field that was left empty.
+@minLength(1)
 @secure()
 param registryPassword string
 
