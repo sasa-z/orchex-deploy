@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "13586509546985898784"
+      "templateHash": "4063100507633471204"
     }
   },
   "parameters": {
@@ -38,7 +38,6 @@
     },
     "registryPassword": {
       "type": "securestring",
-      "minLength": 1,
       "metadata": {
         "description": "Password for that token. Readable only when it was generated."
       }
