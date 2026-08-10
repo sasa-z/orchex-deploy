@@ -121,3 +121,26 @@ identity, and that identity's access to both the vault and its own configuration
 
 Nothing is written into the vault here — the setup wizard does that itself, through the identity
 this grants.
+
+### If the site starts and cannot pull its image
+
+The symptom is `ImagePullUnauthorizedFailure` in the container log, and the site never answering.
+
+Note first that `DOCKER_REGISTRY_SERVER_PASSWORD` always reads back as null through the app settings
+API and the portal, however it was set — so an empty-looking value proves nothing, and is not
+evidence the password is missing.
+
+The reliable way to correct it is to set it directly rather than redeploy:
+
+```bash
+az acr token credential generate --registry orchexregistry --name pull-<customer> \
+  --password1 --expiration-in-days 365 --query "passwords[0].value" -o tsv
+
+az webapp config appsettings set -g <group> -n <app> \
+  --settings DOCKER_REGISTRY_SERVER_PASSWORD='<value>'
+```
+
+Two things that produce this and are easy to miss: generating a token password invalidates the
+previous one, so an installation using the old value stops being able to pull; and the value is 84
+characters, long enough that a UI showing it truncated will hand over something that looks right and
+is not.
