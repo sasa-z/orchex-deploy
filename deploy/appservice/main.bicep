@@ -159,24 +159,6 @@ var baseAppSettings = [
     name: 'ORCHEX_SITE_NAME'
     value: webAppName
   }
-  // Pinned rather than left to the platform's own key management. On a container, an
-  // auto-generated signing/encryption key can differ after a restart or between instances, and a
-  // session cookie signed under the old key then fails to validate under the new one — the symptom
-  // is EasyAuth completing sign-in successfully and then looping back through it forever, because
-  // the session it just established is never recognised on the next request.
-  //
-  // Derived from the resource group id alone, deliberately excluding anything that changes between
-  // deployments — deployment().name does, and a key that moved on every redeploy would recreate the
-  // exact problem this exists to prevent. Redeploying this template must produce the same value
-  // every time; only a new resource group gets new keys.
-  {
-    name: 'WEBSITE_AUTH_SIGNING_KEY'
-    value: uniqueString(resourceGroup().id, 'auth-signing')
-  }
-  {
-    name: 'WEBSITE_AUTH_ENCRYPTION_KEY'
-    value: uniqueString(resourceGroup().id, 'auth-encryption')
-  }
   {
     name: 'DOCKER_REGISTRY_SERVER_URL'
     value: 'https://${containerRegistryHost}'
