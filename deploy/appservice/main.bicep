@@ -113,7 +113,7 @@ resource registryUsernameSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-
   parent: keyVault
   name: 'RegistryUsername'
   properties: {
-    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryUsername)'
+    value: registryUsername
   }
 }
 
@@ -121,7 +121,7 @@ resource registryPasswordSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-
   parent: keyVault
   name: 'RegistryPassword'
   properties: {
-    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=RegistryPassword)'
+    value: registryPassword
   }
 }
 
