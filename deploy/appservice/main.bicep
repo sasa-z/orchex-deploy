@@ -54,7 +54,10 @@ var storageAccountName = toLower(take(replace('${prefix}${suffix}', '-', ''), 24
 // customer, so it is not a question worth putting in front of every installation.
 var appInsightsName = ''
 
-var licenceApiUrl = 'https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence'
+// The full hostname, including the suffix Azure now assigns. A site created under the newer naming
+// does not answer on the short name at all, so the old value failed as "name or service not known" —
+// which reads as a network problem rather than as an address that no longer exists.
+var licenceApiUrl = 'https://orchex-licence-api-v2-ebgtebbhgsa7dycz.westeurope-01.azurewebsites.net/api/ValidateLicence'
 
 // Tuning, changeable afterwards as an app setting without redeploying — so not a question either.
 var httpPoolSize = 4

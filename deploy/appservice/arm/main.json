@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "17805533361726467920"
+      "templateHash": "15454521269365574963"
     }
   },
   "parameters": {
@@ -50,7 +50,7 @@
     "keyVaultName": "[take(format('{0}-{1}', parameters('prefix'), variables('suffix')), 24)]",
     "storageAccountName": "[toLower(take(replace(format('{0}{1}', parameters('prefix'), variables('suffix')), '-', ''), 24))]",
     "appInsightsName": "",
-    "licenceApiUrl": "https://orchex-licence-api-v2.azurewebsites.net/api/ValidateLicence",
+    "licenceApiUrl": "https://orchex-licence-api-v2-ebgtebbhgsa7dycz.westeurope-01.azurewebsites.net/api/ValidateLicence",
     "httpPoolSize": 4,
     "backgroundPoolSize": 8
   },
