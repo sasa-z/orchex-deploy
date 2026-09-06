@@ -228,9 +228,14 @@ var baseAppSettings = [
     value: licenceApiUrl
   }
   {
-    // Same app registration; MCP tokens are validated against it.
+    // Empty on purpose. This is the MCP resource application, which does not exist until someone
+    // runs Set up MCP — so there is no id to write at deployment time. Seeding it with the SAM
+    // application's id was worse than leaving it unset: never correct, and non-empty, so the portal
+    // reported MCP as already provisioned and hid the button that would have provisioned it.
+    // Setup writes the real id into portal settings; Get-McpResourceAppId reads that first and
+    // falls back to this only for deployments made before it did.
     name: 'McpClientId'
-    value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ApplicationId)'
+    value: ''
   }
   {
     name: 'PublicClientApp'
