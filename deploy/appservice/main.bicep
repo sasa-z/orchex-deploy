@@ -276,6 +276,15 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   sku: {
     name: 'B2'
     tier: 'Basic'
+    // Stated rather than left to default, because it is a correctness constraint and not a cost one.
+    // The orchestration engine is single-instance by construction: its work queue is in-memory, the
+    // claim that stops a task being dispatched twice is a dictionary in that process, and task rows
+    // are written with an unconditional upsert — no ETag, no lease. A second worker shares none of
+    // it, so both would run the same tenant's activity and write its snapshot twice, out of order.
+    // Basic offers manual scale-out, so this is one slider away in the portal; the runtime logs an
+    // error when it detects a second live instance (Hosting/SingleInstanceGuard.cs), but detection
+    // is all it can do. Raising this needs a storage-backed singleton lease first.
+    capacity: 1
   }
   properties: {
     reserved: true // required for Linux
