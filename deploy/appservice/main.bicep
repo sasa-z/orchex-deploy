@@ -376,6 +376,21 @@ resource mcpEasyAuthRoleAssignment 'Microsoft.Authorization/roleAssignments@2022
   }
 }
 
+// Binding a custom domain's certificate creates a Microsoft.Web/certificates resource, which is a
+// sibling of the site in this resource group rather than a child of it — so the assignment above
+// cannot cover it, however broad the role. Website Contributor is the narrowest built-in role that
+// carries Microsoft.Web/certificates/*: it reaches every web resource in the group, but not the
+// key vault holding the credentials, nor the storage account holding the data.
+resource portalDomainRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, webApp.id, 'WebsiteContributor', 'portal-domain')
+  properties: {
+    principalId: webApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    // Website Contributor
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
+  }
+}
+
 output webAppName string = webApp.name
 output webAppUrl string = 'https://${webApp.properties.defaultHostName}'
 output principalId string = webApp.identity.principalId
