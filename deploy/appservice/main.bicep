@@ -42,6 +42,15 @@ this app in the customer's, and cross-tenant RBAC does not reach across that.
 ''')
 param registryUsername string
 
+@description('''
+Whether this deployment runs the scheduled work — the CPV refresh, the alert engine, snapshots and
+standards. Leave it on: an installation that does not run them looks like it is working while
+nothing happens on its own. Turn it off only for a second site alongside one that already runs
+them, such as a test copy, because two hosts firing the same timers run every nightly sweep twice
+against the same live data.
+''')
+param enableScheduler bool = true
+
 @description('Password for that token. Readable only when it was generated.')
 @secure()
 param registryPassword string
@@ -195,10 +204,11 @@ var baseAppSettings = [
     value: string(backgroundPoolSize)
   }
   {
-    // Off until this deployment is the one that owns scheduled work. Two hosts both firing timers
-    // run every nightly sweep twice.
+    // The host of an installation runs its scheduled work; a copy standing beside one that already
+    // does must not, or every nightly sweep runs twice. Program.cs compares this to the exact
+    // string 'true', so 'True' and '1' read as off — hence the literals rather than string().
     name: 'ORCHEX_SCHEDULER_ENABLED'
-    value: 'false'
+    value: enableScheduler ? 'true' : 'false'
   }
 
   // ── Application ──────────────────────────────────────────────────────────

@@ -35,7 +35,7 @@ An **App Registration** in your Microsoft Partner tenant is also required, but y
 
 ### Option A — Deploy to Azure button (recommended)
 
-Click the **Deploy to Azure** button above. It asks for five things; three arrive pre-filled:
+Click the **Deploy to Azure** button above. It asks for six things; four arrive pre-filled:
 
 | Parameter               | Description                                                              |
 | ------------------------ | ------------------------------------------------------------------------ |
@@ -44,6 +44,7 @@ Click the **Deploy to Azure** button above. It asks for five things; three arriv
 | `containerImage`         | Pre-filled (`orchex-api:latest` for a real installation).                |
 | `registryUsername`       | The registry token issued for this installation.                         |
 | `registryPassword`       | Its password — readable only when it was issued; store it somewhere safe. |
+| `enableScheduler`        | Pre-filled `true` — this site runs the scheduled work: the CPV refresh, the alert engine, snapshots and standards. Set it to `false` only for a second site beside an installation that already runs them, such as a test copy, since two hosts firing the same timers run every nightly sweep twice. |
 
 ### Option B — Azure CLI
 
