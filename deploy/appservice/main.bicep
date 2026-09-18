@@ -391,6 +391,21 @@ resource portalDomainRoleAssignment 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
+// A managed certificate carries the plan's id, and ARM checks the caller against every scope a
+// resource links to — so writing the certificate is refused (LinkedAuthorizationFailed) without
+// write on the plan itself, which the role above deliberately stops short of. Scoped to this one
+// plan rather than the group, and it is the plan this site already runs on.
+resource portalDomainPlanRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(appServicePlan.id, webApp.id, 'WebPlanContributor', 'portal-domain')
+  scope: appServicePlan
+  properties: {
+    principalId: webApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    // Web Plan Contributor
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2cc479cb-7b4d-49a8-b449-8c00fd0f0a4b')
+  }
+}
+
 output webAppName string = webApp.name
 output webAppUrl string = 'https://${webApp.properties.defaultHostName}'
 output principalId string = webApp.identity.principalId

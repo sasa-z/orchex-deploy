@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "16083682088285894870"
+      "templateHash": "770713745650530145"
     }
   },
   "parameters": {
@@ -182,6 +182,21 @@
         "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')]"
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', variables('webAppName')))]",
+      "name": "[guid(resourceId('Microsoft.Web/serverfarms', format('{0}-plan', variables('webAppName'))), resourceId('Microsoft.Web/sites', variables('webAppName')), 'WebPlanContributor', 'portal-domain')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-01-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2cc479cb-7b4d-49a8-b449-8c00fd0f0a4b')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', variables('webAppName')))]",
         "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
       ]
     }
