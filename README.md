@@ -19,6 +19,7 @@ The App Service is deployed with:
 - Key Vault access policy configured automatically (Get, List, Set)
 - Contributor on itself, scoped to the site — the portal's own MCP client management needs it to write the site's `authsettingsV2` (Easy Auth configuration) via ARM
 - Container registry credentials pre-configured as app settings (plain values, not Key Vault references — the platform pulls the image before the site runs, before any reference would have resolved)
+- `ORCHEX_SETUP_TENANT_ID` set to the subscription's tenant — the only thing that says whose administrator may finish first-run setup, since until setup runs there is no secret to read it from. Change it by hand before opening the site if you sign in with a different tenant than the subscription belongs to.
 
 Application Insights is not created by default — it bills per gigabyte ingested, so that cost is opt-in rather than assumed. Set `appInsightsName` in `deploy/appservice/main.bicep` if you want it.
 

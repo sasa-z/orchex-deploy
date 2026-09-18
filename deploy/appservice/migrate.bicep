@@ -88,6 +88,14 @@ var baseAppSettings = [
     value: webAppName
   }
   {
+    // Whose administrator may finish first-run setup, for a site that has not been through it yet.
+    // A migrated installation answers from its TenantId secret and never reads this, but that
+    // setting is a Key Vault reference, and an unresolved one names no tenant at all — see
+    // main.bicep.
+    name: 'ORCHEX_SETUP_TENANT_ID'
+    value: subscription().tenantId
+  }
+  {
     name: 'DOCKER_REGISTRY_SERVER_URL'
     value: 'https://${containerRegistryHost}'
   }

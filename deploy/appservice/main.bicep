@@ -143,6 +143,17 @@ var baseAppSettings = [
     value: webAppName
   }
   {
+    // Whose administrator may finish first-run setup. Setup's device code accepts a Global
+    // Administrator of any tenant there is, and the TenantId setting below cannot answer for a new
+    // installation — it is a reference to a secret setup has not written yet — so without this a
+    // stranger who reached /setup first could finish it against their own tenant and keep the site.
+    // Setup writes the real tenant into the vault, and reads it from there from then on; this only
+    // has to be right until it does. Deploying into a subscription in a different tenant than the
+    // one you sign in with is the one case to change it by hand before opening the site.
+    name: 'ORCHEX_SETUP_TENANT_ID'
+    value: subscription().tenantId
+  }
+  {
     name: 'DOCKER_REGISTRY_SERVER_URL'
     value: 'https://${containerRegistryHost}'
   }
