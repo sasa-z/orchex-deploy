@@ -417,6 +417,21 @@
           "name": "User.ReadWrite.All"
         },
         {
+          "id": "df021288-bdef-4463-88db-98f22de89214",
+          "type": "Role",
+          "name": "User.Read.All"
+        },
+        {
+          "id": "cc117bb9-00cf-4eb8-b580-ea2a878fe8f7",
+          "type": "Role",
+          "name": "User-PasswordProfile.ReadWrite.All"
+        },
+        {
+          "id": "3011c876-62b7-4ada-afa2-506cbbecc68c",
+          "type": "Role",
+          "name": "User.EnableDisableAccount.All"
+        },
+        {
           "id": "75359482-378d-4052-8f01-80520e7db3cd",
           "type": "Role",
           "name": "Files.ReadWrite.All"
