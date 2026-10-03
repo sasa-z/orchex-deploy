@@ -847,6 +847,11 @@
           "name": "Directory.Read.All"
         },
         {
+          "id": "ae73097b-cb2a-4447-b064-5d80f6093921",
+          "type": "Role",
+          "name": "DirectoryRecommendations.Read.All"
+        },
+        {
           "id": "3b55498e-47ec-484f-8136-9013221c06a9",
           "type": "Role",
           "name": "ChannelMember.Read.All"
