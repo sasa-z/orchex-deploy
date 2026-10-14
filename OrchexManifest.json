@@ -852,6 +852,11 @@
           "name": "DirectoryRecommendations.Read.All"
         },
         {
+          "id": "79c261e0-fe76-4144-aad5-bdc68fbe4037",
+          "type": "Role",
+          "name": "ServiceHealth.Read.All"
+        },
+        {
           "id": "3b55498e-47ec-484f-8136-9013221c06a9",
           "type": "Role",
           "name": "ChannelMember.Read.All"
