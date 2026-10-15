@@ -857,6 +857,11 @@
           "name": "ServiceHealth.Read.All"
         },
         {
+          "id": "1260ad83-98fb-4785-abbb-d6cc1806fd41",
+          "type": "Role",
+          "name": "ConsentRequest.Read.All"
+        },
+        {
           "id": "3b55498e-47ec-484f-8136-9013221c06a9",
           "type": "Role",
           "name": "ChannelMember.Read.All"
