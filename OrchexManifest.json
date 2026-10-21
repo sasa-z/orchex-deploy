@@ -712,6 +712,11 @@
           "name": "DelegatedAdminRelationship.ReadWrite.All"
         },
         {
+          "id": "cc13eba4-8cd8-44c6-b4d4-f93237adce58",
+          "type": "Role",
+          "name": "DelegatedAdminRelationship.ReadWrite.All"
+        },
+        {
           "id": "ad902697-1014-4ef5-81ef-2b4301988e8c",
           "type": "Scope",
           "name": "Policy.ReadWrite.ConditionalAccess"
