@@ -69,9 +69,13 @@ var appInsightsName = ''
 var licenceApiUrl = 'https://orchex-licence-api-v2-ebgtebbhgsa7dycz.westeurope-01.azurewebsites.net/api/ValidateLicence'
 
 // Tuning, changeable afterwards as an app setting without redeploying — so not a question either.
-var httpPoolSize = 4
+// Eight runspaces for requests: opening a page fires nine or ten at once, and with four the later
+// ones queued. Four for background work: on a B2's two cores, eight at a time (the Alert Engine alone
+// dispatches ~450 tasks every 15 minutes) kept both cores near 90% for minutes and held a page request
+// for as long as 133 s. Measured on a live installation 2026-10-22.
+var httpPoolSize = 8
 
-var backgroundPoolSize = 8
+var backgroundPoolSize = 4
 
 // ============================================================================
 // Storage and secrets
