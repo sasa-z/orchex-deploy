@@ -215,6 +215,16 @@ var baseAppSettings = [
     value: enableScheduler ? 'true' : 'false'
   }
 
+  {
+    // The way back in when Allowed Countries locks out every SuperAdmin: the portal refuses the very
+    // change that would let them in, so it is made here. Set to 'true', the portal stops applying the
+    // country restriction to SuperAdmins whatever its own switch says, and Portal Security shows a
+    // notice. Back to 'false' once the list or the exception is right. Only 'true', '1' and 'yes'
+    // turn it on; 'false' does nothing and is here so the setting is found, not looked up.
+    name: 'ORCHEX_GEO_SUPERADMIN_EXEMPT'
+    value: 'false'
+  }
+
   // ── Application ──────────────────────────────────────────────────────────
   // Spelling matters: environment variable names are case-sensitive on Linux and orchex-api reads
   // exactly these. A mismatch does not fail loudly — the tenant check reads "if ($mspTenantId)", so
