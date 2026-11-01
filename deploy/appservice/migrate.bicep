@@ -48,11 +48,10 @@ param registryPassword string
 var licenceApiUrl = 'https://orchex-licence-api-v2-ebgtebbhgsa7dycz.westeurope-01.azurewebsites.net/api/ValidateLicence'
 
 // Eight runspaces for requests: opening a page fires nine or ten at once, and with four the later
-// ones queued. Four for background work: on a B2's two cores, eight at a time (the Alert Engine alone
-// dispatches ~450 tasks every 15 minutes) kept both cores near 90% for minutes and held a page request
-// for as long as 133 s. Measured on a live installation 2026-10-22.
+// ones queued. Six for background work, as in main.bicep (which has the measurements): eight at a time
+// held a page request for as long as 133 s on a B2, four left the hourly work queueing.
 var httpPoolSize = 8
-var backgroundPoolSize = 4
+var backgroundPoolSize = 6
 
 // ============================================================================
 // Shared resources — referenced, never declared

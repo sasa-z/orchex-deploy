@@ -70,12 +70,17 @@ var licenceApiUrl = 'https://orchex-licence-api-v2-ebgtebbhgsa7dycz.westeurope-0
 
 // Tuning, changeable afterwards as an app setting without redeploying — so not a question either.
 // Eight runspaces for requests: opening a page fires nine or ten at once, and with four the later
-// ones queued. Four for background work: on a B2's two cores, eight at a time (the Alert Engine alone
-// dispatches ~450 tasks every 15 minutes) kept both cores near 90% for minutes and held a page request
-// for as long as 133 s. Measured on a live installation 2026-10-22.
+// ones queued. Six for background work. On a B2's two cores eight at a time (the Alert Engine alone
+// dispatched ~450 tasks every 15 minutes) kept both cores near 90% for minutes and held a page request
+// for as long as 133 s (measured on a live installation 2026-10-22); four was safe but left the hourly
+// alerts, the standards and the snapshots queueing behind one another. Six has run on prod since
+// 2026-10-31: with all six busy the container averaged 32% CPU and reached 76% at p90 (175 minutes),
+// and memory did not move. Eight is not worth trying on a B2. ORCHEX_BG_POOL_SIZE also sets the ceiling
+// of the standards cycle (25 tenants an hour for each runspace), so a larger plan raises it by raising
+// this, not by editing the standards.
 var httpPoolSize = 8
 
-var backgroundPoolSize = 4
+var backgroundPoolSize = 6
 
 // ============================================================================
 // Storage and secrets
