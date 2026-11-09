@@ -12,6 +12,11 @@ A Basic B2 Linux App Service plan and a container app on it, with a system-assig
 Key Vault access policy so secret references resolve, and Contributor on itself so the portal's MCP
 client management can write its own `authsettingsV2`.
 
+A user-assigned identity beside it, assigned to the site, which setup makes the sign-in application
+trust in place of a client secret (EasyAuth presents it through `OVERRIDE_USE_MI_FIC_ASSERTION_CLIENTID`,
+which setup writes). The template only names it to setup (`ORCHEX_SIGNIN_IDENTITY_*`); writing the
+override itself would tell the runtime sign-in is configured before anything is in front of the site.
+
 ## What it reuses
 
 Storage, Key Vault, Log Analytics and Application Insights are referenced, not recreated —

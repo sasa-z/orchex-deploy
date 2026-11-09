@@ -139,6 +139,28 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!
 // App settings
 // ============================================================================
 
+// ============================================================================
+// Sign-in identity
+// ============================================================================
+//
+// What EasyAuth signs people in with instead of a client secret (2026-11-09): setup makes the sign-in
+// application trust it through a federated credential, so there is no secret to expire, leak or rotate.
+// User-assigned because that is what App Service presents for this; the site keeps its system-assigned
+// identity for everything else (the vault, its own configuration). Assign it to this site and nothing
+// else: whatever holds it can sign in as the portal's sign-in application.
+//
+// Only named to setup here (ORCHEX_SIGNIN_IDENTITY_*). Setup uses it when the sign-in application is made
+// in the same tenant — a federated credential cannot cross tenants — and then writes
+// OVERRIDE_USE_MI_FIC_ASSERTION_CLIENTID itself, with the rest of sign-in, because that setting is what
+// tells the runtime sign-in is configured and must not be true before it is. Otherwise it makes a secret.
+//
+// No delete lock: a lock on any resource in the group also stops the group being deleted, which is how a
+// test installation is removed. Help suggests one for a live installation.
+resource signInIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: '${webAppName}-identity'
+  location: location
+}
+
 // Built as a variable rather than inline so the optional Application Insights entry is a concat.
 // Reading the site's own settings back to merge into them compiles, and then fails at deploy time
 // because the resource is still being created.
@@ -170,6 +192,19 @@ var baseAppSettings = [
     // one you sign in with is the one case to change it by hand before opening the site.
     name: 'ORCHEX_SETUP_TENANT_ID'
     value: subscription().tenantId
+  }
+  // The sign-in identity above, for setup to find. Not what makes sign-in configured — see there.
+  {
+    name: 'ORCHEX_SIGNIN_IDENTITY_CLIENT_ID'
+    value: signInIdentity.properties.clientId
+  }
+  {
+    name: 'ORCHEX_SIGNIN_IDENTITY_PRINCIPAL_ID'
+    value: signInIdentity.properties.principalId
+  }
+  {
+    name: 'ORCHEX_SIGNIN_IDENTITY_TENANT_ID'
+    value: signInIdentity.properties.tenantId
   }
   {
     name: 'DOCKER_REGISTRY_SERVER_URL'
@@ -335,8 +370,13 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
   name: webAppName
   location: location
   kind: 'app,linux,container'
+  // The system-assigned identity is the one every grant below is made to; the user-assigned one is only
+  // the sign-in identity. webApp.identity.principalId stays the system-assigned one.
   identity: {
-    type: 'SystemAssigned'
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${signInIdentity.id}': {}
+    }
   }
   properties: {
     serverFarmId: appServicePlan.id

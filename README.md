@@ -12,10 +12,12 @@ Orchex is a self-hosted MSP portal for managing Microsoft 365 tenants. Each MSP 
 | App Service Plan  | Basic B2                    | Always-on — no idle eviction between requests   |
 | Key Vault         | Standard                    | Stores credentials securely                     |
 | Storage Account   | Standard LRS                | Tables for data & logs                          |
+| Managed Identity  | User-assigned               | What people sign in to the portal with, in place of a client secret |
 
 The App Service is deployed with:
 
-- System Assigned Managed Identity
+- System Assigned Managed Identity — the one the Key Vault and the site's own configuration are reached with
+- The user-assigned identity above, for sign-in only. Setup makes the sign-in application trust it (a federated credential), so the portal's sign-in has no client secret to expire, leak or rotate. Setup uses it only when you sign in with the tenant the subscription belongs to (a federated credential cannot cross tenants); otherwise it makes a client secret as before. `ORCHEX_SIGNIN_IDENTITY_CLIENT_ID`, `_PRINCIPAL_ID` and `_TENANT_ID` name it to setup. Assign it to nothing else: whatever holds it can sign in as the portal's sign-in application. On a live installation, a delete lock on it (Resource → Locks → Add, *Delete*) keeps anyone from removing it by mistake; it is not set here because a lock on any resource also stops the resource group being deleted.
 - Key Vault access policy configured automatically (Get, List, Set)
 - Contributor on itself, scoped to the site — the portal's own MCP client management needs it to write the site's `authsettingsV2` (Easy Auth configuration) via ARM
 - Container registry credentials pre-configured as app settings (plain values, not Key Vault references — the platform pulls the image before the site runs, before any reference would have resolved)
@@ -83,6 +85,7 @@ Names are derived from `prefix` and a `uniqueString` of the resource group, so t
 | App Service Plan   | `<prefix>-<suffix>-plan`                           |
 | Key Vault          | `<prefix>-<suffix>` (truncated to 24 characters)   |
 | Storage Account    | `<prefix><suffix>` (lowercase, no dashes, truncated to 24 characters) |
+| Managed Identity   | `<prefix>-<suffix>-identity`                       |
 
 ## Migrating from Function App + Static Web App
 
