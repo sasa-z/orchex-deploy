@@ -251,10 +251,37 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
       linuxFxVersion: 'DOCKER|${containerRegistryHost}/${containerImage}'
       alwaysOn: true
       http20Enabled: true
+      // Stated rather than left to the platform's defaults, which have moved before and differ by API version
+      // (2026-11-12). FTP is off altogether: the image is pointed at through ARM and nothing uploads files.
+      minTlsVersion: '1.2'
+      scmMinTlsVersion: '1.2'
+      ftpsState: 'Disabled'
       // Answered without touching PowerShell, so it stays truthful while the pool is saturated.
       healthCheckPath: '/health'
       appSettings: concat(baseAppSettings, telemetryAppSettings)
     }
+  }
+}
+
+// Kudu (the scm site) and FTP with a publishing username and password are off (2026-11-12, found on production: both
+// were on, and the scm site had no address restriction). Nothing deploys that way - the image is pointed at by digest
+// through ARM (azure/webapps-deploy with a service principal) and the portal changes its own site through its
+// managed identity - so left on, the scm site was a public sign-in page whose publishing credential can replace the
+// running code, and a leaked one looks like the owner's. Kudu still opens with Entra ID, so nothing is lost for
+// debugging. To use the credential for a while, set allow to true and back; see the README, "Hardened by default".
+resource scmBasicAuth 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-01-01' = {
+  parent: webApp
+  name: 'scm'
+  properties: {
+    allow: false
+  }
+}
+
+resource ftpBasicAuth 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-01-01' = {
+  parent: webApp
+  name: 'ftp'
+  properties: {
+    allow: false
   }
 }
 

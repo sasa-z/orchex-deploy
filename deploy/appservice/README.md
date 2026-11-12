@@ -34,6 +34,39 @@ az deployment group create \
   --parameters storageAccountName=<existing>
 ```
 
+## Hardened by default
+
+The template states the settings that decide who can reach the site, instead of leaving them to the platform's
+defaults (2026-11-12):
+
+- **Kudu (the scm site) and FTP with a publishing username and password are off**, and FTP is disabled
+  (`basicPublishingCredentialsPolicies`, `ftpsState`). Nothing here deploys that way: the image is pointed at through ARM
+  (`azure/webapps-deploy` with a service principal) and the portal changes its own site through its managed identity.
+  Left on, the scm site is a public sign-in page whose credential can replace the running code. Kudu still opens with
+  Entra ID.
+- TLS 1.2 at least, for the site and for the scm site; HTTPS only; HTTP/2.
+
+To use the publishing credential for a while, set it on and off again:
+
+```bash
+SITE=$(az webapp show -g <group> -n <site> --query id -o tsv)
+az resource update --ids "$SITE/basicPublishingCredentialsPolicies/scm" --api-version 2022-03-01 --set properties.allow=true
+# ... and back
+az resource update --ids "$SITE/basicPublishingCredentialsPolicies/scm" --api-version 2022-03-01 --set properties.allow=false
+```
+
+**A deployment that already exists is changed only by running the template again.** To check one:
+
+```bash
+for k in scm ftp; do az resource show --ids "$SITE/basicPublishingCredentialsPolicies/$k" --api-version 2022-03-01 --query properties.allow -o tsv; done
+```
+
+Both should print `false`; if not, the `set properties.allow=false` form above switches them off. The portal's Help,
+Security Hardening, says the same.
+
+Before sign-in is configured, the setup endpoints answer without authentication (the runtime logs a warning for as
+long as that is so). The template does not close that window; restrict the site by IP address until setup is done.
+
 ## Not done by this template
 
 EasyAuth. It is a platform feature of `Microsoft.Web/sites` and works the same here as on the
